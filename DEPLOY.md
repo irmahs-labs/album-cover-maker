@@ -20,11 +20,13 @@ The site is static: the image builds it with Node, then a small Caddy serves `di
 
    Every irmahs.dev record is **Proxied** (orange cloud), which keeps the server's IP hidden. That needs **SSL/TLS → Overview → Full (strict)** for the zone: Caddy still gets and renews its own Let's Encrypt certificates, since Cloudflare forwards `/.well-known/acme-challenge/` to the server over HTTP. Never use Flexible: Caddy redirects HTTP to HTTPS, so every site would loop.
 
-2. **Server folder**, as the admin user:
+2. **Server folder**: the deploy runs `mkdir -p /srv/album-cover-maker` itself, which works if the `deploy` user can write to `/srv`. If the first deploy stops with "Permission denied", create it once as the admin user:
 
    ```sh
-   sudo mkdir /srv/album-cover-maker && sudo chown deploy:deploy /srv/album-cover-maker
+   ssh -t ADMIN_USER@SERVER_IP 'sudo mkdir -p /srv/album-cover-maker && sudo chown deploy:deploy /srv/album-cover-maker'
    ```
+
+   Use the server's IP: with the records proxied, `ssh irmahs.dev` goes to Cloudflare, which does not pass SSH through.
 
 3. **Secrets**: `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `DEPLOY_HOST` are shared at organization level. If the organization secrets are limited to selected repositories, add this one (Organization settings → Secrets and variables → Actions).
 

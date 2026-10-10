@@ -23,6 +23,8 @@ jobs:
       - name: Deploy on server
         run: |
           ssh deploy@${{ secrets.DEPLOY_HOST }} 'set -e
+            # Works when deploy can write to /srv; otherwise create it once as admin (DEPLOY.md).
+            mkdir -p /srv/album-cover-maker
             cd /srv/album-cover-maker
             [ -d .git ] || git clone https://github.com/${{ github.repository }}.git .
             git fetch --depth 1 origin main
