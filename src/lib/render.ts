@@ -1,5 +1,6 @@
 import { buttonColor, playerColor } from "./color";
-import { cssFont, type TextStyle } from "./fonts";
+import { cssFont } from "./fonts";
+import type { TextStyle } from "./fonts";
 import type { CoverState, Photo } from "./state";
 
 type Ctx = CanvasRenderingContext2D;
@@ -13,7 +14,11 @@ const CREAM = "#fff3cf";
 const GOLD = "#f2d27a";
 
 /** Greedy word wrap. Words longer than `maxWidth` stay on their own line. */
-export function wrapLines(text: string, maxWidth: number, measure: (s: string) => number): string[] {
+export function wrapLines(
+  text: string,
+  maxWidth: number,
+  measure: (s: string) => number
+): string[] {
   const lines: string[] = [];
   for (const para of text.split("\n")) {
     const words = para.split(/\s+/).filter(Boolean);
@@ -27,22 +32,31 @@ export function wrapLines(text: string, maxWidth: number, measure: (s: string) =
         line = next;
       }
     }
-    if (line) lines.push(line);
+    if (line) {
+      lines.push(line);
+    }
   }
   return lines;
 }
 
 /** Where the photo lands inside a square of side `size`, honouring zoom and pan. */
-export function photoRect(photo: { width: number; height: number }, size: number, zoom: number, panX: number, panY: number) {
-  const scale = Math.max(size / photo.width, size / photo.height) * (zoom / 100);
+export function photoRect(
+  photo: { width: number; height: number },
+  size: number,
+  zoom: number,
+  panX: number,
+  panY: number
+) {
+  const scale =
+    Math.max(size / photo.width, size / photo.height) * (zoom / 100);
   const w = photo.width * scale;
   const h = photo.height * scale;
   const clamp = (v: number) => Math.max(-1, Math.min(1, v));
   return {
+    h,
+    w,
     x: (size - w) / 2 + (clamp(panX) * (w - size)) / 2,
     y: (size - h) / 2 + (clamp(panY) * (h - size)) / 2,
-    w,
-    h,
   };
 }
 
@@ -93,7 +107,13 @@ function drawPlaceholder(ctx: Ctx, size: number) {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
     ctx.fillStyle = CREAM;
     ctx.beginPath();
-    ctx.arc(fx + Math.cos(a) * pr * 1.6, fy + Math.sin(a) * pr * 1.6, pr, 0, Math.PI * 2);
+    ctx.arc(
+      fx + Math.cos(a) * pr * 1.6,
+      fy + Math.sin(a) * pr * 1.6,
+      pr,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
     ctx.stroke();
   }
@@ -120,7 +140,9 @@ function drawAdvisoryLabel(ctx: Ctx, x: number, y: number, w: number) {
   const fit = (text: string, px: number, maxW: number) => {
     ctx.font = `700 ${px}px "Work Sans", "Arial Narrow", Arial, sans-serif`;
     const m = ctx.measureText(text).width;
-    if (m > maxW) ctx.font = `700 ${(px * maxW) / m}px "Work Sans", "Arial Narrow", Arial, sans-serif`;
+    if (m > maxW) {
+      ctx.font = `700 ${(px * maxW) / m}px "Work Sans", "Arial Narrow", Arial, sans-serif`;
+    }
   };
   ctx.fillStyle = "#ffffff";
   fit("PARENTAL", band * 0.72, w * 0.8);
@@ -136,18 +158,37 @@ function drawAdvisoryLabel(ctx: Ctx, x: number, y: number, w: number) {
 }
 
 /** Draws text left-aligned at (x, baseline) with tracking and optional underline/strike. */
-function drawStyledText(ctx: Ctx, text: string, x: number, baseline: number, px: number, tracking: number, style: TextStyle) {
+function drawStyledText(
+  ctx: Ctx,
+  text: string,
+  x: number,
+  baseline: number,
+  px: number,
+  tracking: number,
+  style: TextStyle
+) {
   ctx.letterSpacing = `${tracking}px`;
   ctx.fillText(text, x, baseline);
-  if (!style.underline && !style.strike) return;
+  if (!style.underline && !style.strike) {
+    return;
+  }
   const width = ctx.measureText(text).width - tracking;
   const thick = Math.max(1, px * 0.06);
-  if (style.underline) ctx.fillRect(x, baseline + px * 0.1, width, thick);
-  if (style.strike) ctx.fillRect(x, baseline - px * 0.32, width, thick);
+  if (style.underline) {
+    ctx.fillRect(x, baseline + px * 0.1, width, thick);
+  }
+  if (style.strike) {
+    ctx.fillRect(x, baseline - px * 0.32, width, thick);
+  }
 }
 
 /** The cover, drawn into the square (0, 0, size, size) of `ctx`. */
-export function drawCover(ctx: Ctx, size: number, state: CoverState, photo: Photo | null) {
+export function drawCover(
+  ctx: Ctx,
+  size: number,
+  state: CoverState,
+  photo: Photo | null
+) {
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, size, size);
@@ -194,7 +235,15 @@ export function drawCover(ctx: Ctx, size: number, state: CoverState, photo: Phot
       const lines = wrapLines(text, maxW, (s) => ctx.measureText(s).width);
       const lh = px * 1.25;
       for (let i = lines.length - 1; i >= 0; i--) {
-        drawStyledText(ctx, lines[i], left, bottom - px * 0.22, px, tracking, state.subtitleStyle);
+        drawStyledText(
+          ctx,
+          lines[i],
+          left,
+          bottom - px * 0.22,
+          px,
+          tracking,
+          state.subtitleStyle
+        );
         bottom -= lh;
       }
       bottom -= size * 0.012;
@@ -212,12 +261,22 @@ export function drawCover(ctx: Ctx, size: number, state: CoverState, photo: Phot
         lines = wrapLines(state.title.trim(), maxW, measure);
         const tooWide = lines.some((l) => measure(l) > maxW);
         const tooTall = lines.length * px * 0.95 > size * 0.7;
-        if (!tooWide && !tooTall) break;
+        if (!tooWide && !tooTall) {
+          break;
+        }
         px *= 0.92;
       }
       const lh = px * 0.95;
       for (let i = lines.length - 1; i >= 0; i--) {
-        drawStyledText(ctx, lines[i], left, bottom - px * 0.08, px, tracking, state.titleStyle);
+        drawStyledText(
+          ctx,
+          lines[i],
+          left,
+          bottom - px * 0.08,
+          px,
+          tracking,
+          state.titleStyle
+        );
         bottom -= lh;
       }
     }
@@ -226,15 +285,26 @@ export function drawCover(ctx: Ctx, size: number, state: CoverState, photo: Phot
   ctx.letterSpacing = "0px";
 }
 
-function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+function roundRect(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
 }
 
 function fitText(ctx: Ctx, text: string, maxW: number): string {
-  if (ctx.measureText(text).width <= maxW) return text;
+  if (ctx.measureText(text).width <= maxW) {
+    return text;
+  }
   let t = text;
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) t = t.slice(0, -1);
+  while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) {
+    t = t.slice(0, -1);
+  }
   return `${t.trimEnd()}…`;
 }
 
@@ -242,7 +312,12 @@ function fitText(ctx: Ctx, text: string, maxW: number): string {
  * A now-playing screen built around the cover, drawn at width `w` and
  * height `w * 4 / 3`. All measurements are in units of a 300 × 400 layout.
  */
-export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo | null) {
+export function drawPlayer(
+  ctx: Ctx,
+  w: number,
+  state: CoverState,
+  photo: Photo | null
+) {
   const u = w / 300;
   const h = w * (4 / 3);
   const bg = playerColor(state.playerHue);
@@ -257,7 +332,13 @@ export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo 
     ctx.globalAlpha = 0.35;
     ctx.filter = `blur(${24 * u}px)`;
     const r = photoRect(photo, h * 1.1, state.zoom, state.panX, state.panY);
-    ctx.drawImage(photo.image, r.x - (h * 1.1 - w) / 2, r.y - h * 0.05, r.w, r.h);
+    ctx.drawImage(
+      photo.image,
+      r.x - (h * 1.1 - w) / 2,
+      r.y - h * 0.05,
+      r.w,
+      r.h
+    );
     ctx.restore();
     ctx.fillStyle = bg;
     ctx.globalAlpha = 0.45;
@@ -283,7 +364,11 @@ export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo 
   ctx.textBaseline = "alphabetic";
   if (state.playerShowText) {
     ctx.font = `700 ${17 * u}px "Lato", sans-serif`;
-    ctx.fillText(fitText(ctx, state.title.trim() || "Untitled", coverSize), pad, y);
+    ctx.fillText(
+      fitText(ctx, state.title.trim() || "Untitled", coverSize),
+      pad,
+      y
+    );
     y += 17 * u;
     ctx.font = `400 ${12 * u}px "Lato", sans-serif`;
     ctx.globalAlpha = 0.85;
@@ -337,7 +422,12 @@ export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo 
     ctx.lineTo(cx + dir * s * 0.7, cy + s * 0.8);
     ctx.closePath();
     ctx.fill();
-    ctx.fillRect(dir === 1 ? cx - s * 0.85 : cx + s * 0.6, cy - s * 0.8, s * 0.25, s * 1.6);
+    ctx.fillRect(
+      dir === 1 ? cx - s * 0.85 : cx + s * 0.6,
+      cy - s * 0.8,
+      s * 0.25,
+      s * 1.6
+    );
   };
   skip(slots[1], 1);
   skip(slots[3], -1);

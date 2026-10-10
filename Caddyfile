@@ -1,0 +1,23 @@
+# Serves the built site inside the container. HTTPS, compression headers and
+# the hostname live in irmahs-labs/proxy, which reaches this as
+# album-cover-maker:3000 over the shared `proxy` network.
+{
+	admin off
+	auto_https off
+}
+
+:3000 {
+	root * /srv
+	encode zstd gzip
+
+	# Vite fingerprints everything under /assets, so it can be cached forever.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	# Everything else is the page itself: always check for a new deploy.
+	@page not path /assets/*
+	header @page Cache-Control "no-cache"
+
+	# /make and any other app route fall back to the single page.
+	try_files {path} /index.html
+	file_server
+}

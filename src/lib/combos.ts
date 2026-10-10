@@ -14,13 +14,69 @@ export interface Combo {
 }
 
 export const COMBOS: Combo[] = [
-  { id: "fatface", name: "Fatface", titleFont: "Abril Fatface", subtitleFont: "Lato", titleStyle: PLAIN, playerShift: 0, buttonShift: 0 },
-  { id: "night-drive", name: "Night drive", titleFont: "Bebas Neue", subtitleFont: "Figtree", titleStyle: PLAIN, playerShift: 0, buttonShift: -5 },
-  { id: "matcha-latte", name: "Matcha latte", titleFont: "DM Serif Display", subtitleFont: "Figtree", titleStyle: PLAIN, playerShift: 40, buttonShift: 60 },
-  { id: "blue-hour", name: "Blue hour", titleFont: "Syne", subtitleFont: "Space Grotesk", titleStyle: PLAIN, playerShift: 180, buttonShift: 180 },
-  { id: "lo-fi-tape", name: "Lo-fi tape", titleFont: "Playfair Display", subtitleFont: "IBM Plex Mono", titleStyle: { ...PLAIN, italic: true }, playerShift: -25, buttonShift: -30 },
-  { id: "sakura-pop", name: "Sakura pop", titleFont: "Righteous", subtitleFont: "Karla", titleStyle: PLAIN, playerShift: -60, buttonShift: -60 },
-  { id: "late-cinema", name: "Late cinema", titleFont: "Anton", subtitleFont: "Work Sans", titleStyle: PLAIN, playerShift: 15, buttonShift: 15 },
+  {
+    buttonShift: 0,
+    id: "fatface",
+    name: "Fatface",
+    playerShift: 0,
+    subtitleFont: "Lato",
+    titleFont: "Abril Fatface",
+    titleStyle: PLAIN,
+  },
+  {
+    buttonShift: -5,
+    id: "night-drive",
+    name: "Night drive",
+    playerShift: 0,
+    subtitleFont: "Figtree",
+    titleFont: "Bebas Neue",
+    titleStyle: PLAIN,
+  },
+  {
+    buttonShift: 60,
+    id: "matcha-latte",
+    name: "Matcha latte",
+    playerShift: 40,
+    subtitleFont: "Figtree",
+    titleFont: "DM Serif Display",
+    titleStyle: PLAIN,
+  },
+  {
+    buttonShift: 180,
+    id: "blue-hour",
+    name: "Blue hour",
+    playerShift: 180,
+    subtitleFont: "Space Grotesk",
+    titleFont: "Syne",
+    titleStyle: PLAIN,
+  },
+  {
+    buttonShift: -30,
+    id: "lo-fi-tape",
+    name: "Lo-fi tape",
+    playerShift: -25,
+    subtitleFont: "IBM Plex Mono",
+    titleFont: "Playfair Display",
+    titleStyle: { ...PLAIN, italic: true },
+  },
+  {
+    buttonShift: -60,
+    id: "sakura-pop",
+    name: "Sakura pop",
+    playerShift: -60,
+    subtitleFont: "Karla",
+    titleFont: "Righteous",
+    titleStyle: PLAIN,
+  },
+  {
+    buttonShift: 15,
+    id: "late-cinema",
+    name: "Late cinema",
+    playerShift: 15,
+    subtitleFont: "Work Sans",
+    titleFont: "Anton",
+    titleStyle: PLAIN,
+  },
 ];
 
 export interface Suggestion {
@@ -42,6 +98,10 @@ export function suggestCombos(photoHues: number[], round = 0): Suggestion[] {
   return COMBOS.map((_, i) => {
     const combo = COMBOS[(i + round) % n];
     const base = hues[(i + round) % hues.length];
-    return { combo, playerHue: wrap(base + combo.playerShift), buttonHue: wrap(base + combo.buttonShift) };
+    return {
+      buttonHue: wrap(base + combo.buttonShift),
+      combo,
+      playerHue: wrap(base + combo.playerShift),
+    };
   });
 }

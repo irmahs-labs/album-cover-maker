@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buttonColor, dominantHues, hslToHex, playerColor, rgbToHsl } from "./color";
+
+import {
+  buttonColor,
+  dominantHues,
+  hslToHex,
+  playerColor,
+  rgbToHsl,
+} from "./color";
 
 describe("hslToHex", () => {
   it("converts primaries", () => {
@@ -22,7 +29,9 @@ describe("rgbToHsl", () => {
 describe("player colours", () => {
   it("keep button text readable on the player background", () => {
     const lum = (hex: string) => {
-      const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      const c = [1, 3, 5]
+        .map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
       return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     };
     for (let h = 0; h < 360; h += 15) {
@@ -34,7 +43,9 @@ describe("player colours", () => {
 
 describe("dominantHues", () => {
   const pixels = (...colors: [number, number, number, number][]) =>
-    colors.flatMap(([r, g, b, n]) => Array.from({ length: n }, () => [r, g, b, 255]).flat());
+    colors.flatMap(([r, g, b, n]) =>
+      Array.from({ length: n }, () => [r, g, b, 255]).flat()
+    );
 
   it("puts the most common saturated hue first and ignores greys", () => {
     const data = pixels([0, 0, 255, 50], [255, 0, 0, 20], [128, 128, 128, 500]);

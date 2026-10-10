@@ -10,7 +10,9 @@ export function usePath(): string {
 }
 
 export function navigate(to: string) {
-  if (to === window.location.pathname) return;
+  if (to === window.location.pathname) {
+    return;
+  }
   window.history.pushState(null, "", to);
   window.dispatchEvent(new PopStateEvent("popstate"));
   window.scrollTo(0, 0);
@@ -19,7 +21,9 @@ export function navigate(to: string) {
 /** Click handler for in-app links: keeps cmd/ctrl-click opening a new tab. */
 export function linkTo(to: string) {
   return (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+      return;
+    }
     e.preventDefault();
     navigate(to);
   };
