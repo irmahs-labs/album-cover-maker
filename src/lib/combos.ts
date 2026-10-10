@@ -14,6 +14,7 @@ export interface Combo {
 }
 
 export const COMBOS: Combo[] = [
+  { id: "fatface", name: "Fatface", titleFont: "Abril Fatface", subtitleFont: "Lato", titleStyle: PLAIN, playerShift: 0, buttonShift: 0 },
   { id: "night-drive", name: "Night drive", titleFont: "Bebas Neue", subtitleFont: "Figtree", titleStyle: PLAIN, playerShift: 0, buttonShift: -5 },
   { id: "matcha-latte", name: "Matcha latte", titleFont: "DM Serif Display", subtitleFont: "Figtree", titleStyle: PLAIN, playerShift: 40, buttonShift: 60 },
   { id: "blue-hour", name: "Blue hour", titleFont: "Syne", subtitleFont: "Space Grotesk", titleStyle: PLAIN, playerShift: 180, buttonShift: 180 },

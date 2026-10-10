@@ -41,14 +41,14 @@ export const DEFAULT_STATE: CoverState = {
   showText: true,
   title: "Album title",
   subtitle: "Artist name",
-  titleFont: "Bebas Neue",
-  subtitleFont: "Figtree",
+  titleFont: "Abril Fatface",
+  subtitleFont: "Lato",
   titleStyle: PLAIN,
   subtitleStyle: PLAIN,
   playerShowText: true,
   playerHue: 40,
   buttonHue: 35,
-  comboId: "night-drive",
+  comboId: "fatface",
 };
 
 export function slug(text: string): string {

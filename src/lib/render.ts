@@ -282,10 +282,10 @@ export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo 
   ctx.fillStyle = fg;
   ctx.textBaseline = "alphabetic";
   if (state.playerShowText) {
-    ctx.font = `700 ${17 * u}px "Figtree", sans-serif`;
+    ctx.font = `700 ${17 * u}px "Lato", sans-serif`;
     ctx.fillText(fitText(ctx, state.title.trim() || "Untitled", coverSize), pad, y);
     y += 17 * u;
-    ctx.font = `500 ${12 * u}px "Figtree", sans-serif`;
+    ctx.font = `400 ${12 * u}px "Lato", sans-serif`;
     ctx.globalAlpha = 0.85;
     ctx.fillText(fitText(ctx, state.subtitle.trim(), coverSize), pad, y);
     ctx.globalAlpha = 1;
@@ -306,7 +306,7 @@ export function drawPlayer(ctx: Ctx, w: number, state: CoverState, photo: Photo 
   ctx.arc(pad + coverSize * progress, y + 1.5 * u, 5 * u, 0, Math.PI * 2);
   ctx.fill();
   y += 16 * u;
-  ctx.font = `500 ${9 * u}px "Figtree", sans-serif`;
+  ctx.font = `400 ${9 * u}px "Lato", sans-serif`;
   ctx.fillText("1:24", pad, y);
   ctx.textAlign = "right";
   ctx.fillText("3:41", pad + coverSize, y);

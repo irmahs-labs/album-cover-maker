@@ -313,7 +313,7 @@ export function Maker() {
               </label>
               <HueSlider id="player-hue" label="Player" hue={state.playerHue} color={playerColor(state.playerHue)} track={hueTrack(62, 86)} onChange={(h) => setState((s) => ({ ...s, playerHue: h, comboId: null }))} />
               <HueSlider id="button-hue" label="Buttons and text" hue={state.buttonHue} color={buttonColor(state.buttonHue)} track={hueTrack(48, 25)} onChange={(h) => setState((s) => ({ ...s, buttonHue: h, comboId: null }))} />
-              <p className="hint">The player's text always uses Figtree. Its album picture is your cover, exactly as designed.</p>
+              <p className="hint">The player's text always uses Lato. Its album picture is your cover, exactly as designed.</p>
             </fieldset>
           </div>
 

@@ -12,8 +12,8 @@ export function useFontsReady(state: CoverState): number {
     loadFonts([
       cssFont(titleFont, titleStyle, 40),
       cssFont(subtitleFont, subtitleStyle, 40),
-      `700 40px "Figtree"`,
-      `500 40px "Figtree"`,
+      `700 40px "Lato"`,
+      `400 40px "Lato"`,
       `700 40px "Work Sans"`,
     ]).then(() => live && setTick((t) => t + 1));
     return () => {

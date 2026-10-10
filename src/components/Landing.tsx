@@ -23,7 +23,7 @@ function Window({ name, children, className = "" }: { name: string; children: Re
 
 const STEPS = [
   { title: "Drop in a photo", text: "Any JPEG, PNG or WebP. It's cropped to a square, and you can zoom and drag to frame it." },
-  { title: "Add your title", text: "Type the album and artist name, then pick a combo or choose from 12 fonts yourself." },
+  { title: "Add your title", text: "Type the album and artist name, then pick a combo or choose from 14 fonts yourself." },
   { title: "Export", text: "Download the cover at 3000 × 3000 and a player mock-up at 1080 × 1440 for socials." },
 ];
 

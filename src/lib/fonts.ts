@@ -1,5 +1,5 @@
-export const TITLE_FONTS = ["Bebas Neue", "DM Serif Display", "Anton", "Playfair Display", "Righteous", "Syne"] as const;
-export const SUBTITLE_FONTS = ["Figtree", "Space Grotesk", "Karla", "Lora", "IBM Plex Mono", "Work Sans"] as const;
+export const TITLE_FONTS = ["Abril Fatface", "Bebas Neue", "DM Serif Display", "Anton", "Playfair Display", "Righteous", "Syne"] as const;
+export const SUBTITLE_FONTS = ["Lato", "Figtree", "Space Grotesk", "Karla", "Lora", "IBM Plex Mono", "Work Sans"] as const;
 
 export type TitleFont = (typeof TITLE_FONTS)[number];
 export type SubtitleFont = (typeof SUBTITLE_FONTS)[number];
@@ -23,6 +23,7 @@ const BASE_WEIGHT: Record<string, number> = {
 };
 
 const FALLBACK: Record<string, string> = {
+  "Abril Fatface": "serif",
   "DM Serif Display": "serif",
   "Playfair Display": "serif",
   Lora: "serif",
