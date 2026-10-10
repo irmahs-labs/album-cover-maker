@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Deploy on server
+        run: |
+          ssh deploy@${{ secrets.DEPLOY_HOST }} 'set -e
+            # Works when deploy can write to /srv; otherwise create it once as admin (DEPLOY.md).
+            mkdir -p /srv/album-cover-maker
+            cd /srv/album-cover-maker
+            [ -d .git ] || git clone https://github.com/${{ github.repository }}.git .
+            git fetch --depth 1 origin main
+            git reset --hard origin/main
+            docker network create proxy 2>/dev/null || true
+            docker compose up -d --build --remove-orphans --wait web
+            docker image prune -f
+            docker builder prune -f --filter until=168h'

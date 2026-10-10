@@ -1,0 +1,14 @@
+# Caddy lives in irmahs-labs/proxy and reaches this site over the shared
+# `proxy` network as `album-cover-maker:3000`. No ports are published here.
+services:
+  web:
+    build: .
+    image: album-cover-maker-web
+    restart: unless-stopped
+    networks:
+      proxy:
+        aliases: [album-cover-maker]
+
+networks:
+  proxy:
+    external: true
