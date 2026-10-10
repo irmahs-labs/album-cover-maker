@@ -15,10 +15,10 @@ The site is static: the image builds it with Node, then a small Caddy serves `di
 
    | Type   | Name                | Content           | Proxy status |
    | ------ | ------------------- | ----------------- | ------------ |
-   | `A`    | `album-cover-maker` | the server's IPv4 | DNS only     |
-   | `AAAA` | `album-cover-maker` | the server's IPv6 | DNS only     |
+   | `A`    | `album-cover-maker` | the server's IPv4 | Proxied      |
+   | `AAAA` | `album-cover-maker` | the server's IPv6 | Proxied      |
 
-   Keep them **DNS only** (grey cloud), like the other subdomains: Caddy gets the certificate itself.
+   Every irmahs.dev record is **Proxied** (orange cloud), which keeps the server's IP hidden. That needs **SSL/TLS → Overview → Full (strict)** for the zone: Caddy still gets and renews its own Let's Encrypt certificates, since Cloudflare forwards `/.well-known/acme-challenge/` to the server over HTTP. Never use Flexible: Caddy redirects HTTP to HTTPS, so every site would loop.
 
 2. **Server folder**, as the admin user:
 
