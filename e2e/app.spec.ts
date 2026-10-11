@@ -28,7 +28,8 @@ const pixel = (page: Page, x: number, y: number) =>
     [x, y]
   );
 /**
- * Share of a label's area that is black or white: by default the top-left
+ * Share of a label's area that is black, white or grey (the label's letters
+ * blend to grey at small sizes, the orange test photo never is): by default the top-left
  * one (10% wide, 1.6 : 1, 3.5% in from the edges).
  */
 const labelShare = (page: Page, corner = "top-left", width = 0.1) =>
@@ -44,7 +45,7 @@ const labelShare = (page: Page, corner = "top-left", width = 0.1) =>
       for (let i = 0; i < data.length; i += 4) {
         const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
         const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
-        if (grey && (r < 70 || r > 185)) {
+        if (grey) {
           plain += 1;
         }
       }
@@ -157,21 +158,52 @@ test("dragging the title snaps it to one of nine spots", async ({ page }) => {
   }
   const at = (fx: number, fy: number) =>
     [box.x + box.width * fx, box.y + box.height * fy] as const;
-  const spot = (name: string) =>
-    page
-      .getByRole("group", { name: "Text position" })
-      .getByRole("button", { name });
+  /** Whether the text sits at a spot, going by the two position groups. */
+  const atSpot = async (row: string, column: string) => {
+    const pressed = (group: string) =>
+      page
+        .getByRole("group", { name: group })
+        .locator('[aria-pressed="true"]')
+        .textContent();
+    return (
+      [
+        await pressed("Vertical position"),
+        await pressed("Horizontal position"),
+      ].join(" ") === `${row} ${column}`
+    );
+  };
 
   // The default title sits bottom left; grab it there.
   await page.mouse.move(...at(0.2, 0.86));
   await page.mouse.down();
   await page.mouse.move(...at(0.5, 0.5), { steps: 4 });
   await expect(page.locator(".spot-grid")).toBeVisible();
-  await expect(spot("middle center")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => atSpot("middle", "center")).toBe(true);
   await page.mouse.move(...at(0.85, 0.15), { steps: 4 });
   await page.mouse.up();
-  await expect(spot("top right")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => atSpot("top", "right")).toBe(true);
   await expect(page.locator(".spot-grid")).toHaveCount(0);
+});
+
+test("a filter changes the photo on the cover, by its strength", async ({
+  page,
+}) => {
+  await page.goto("/make");
+  await addPhoto(page);
+  // Inside the blue disc of the test photo.
+  await expect.poll(() => pixel(page, 0.66, 0.33)).toEqual([40, 80, 200]);
+  await page
+    .getByRole("group", { name: "Photo filter" })
+    .getByRole("button", { name: "Mono" })
+    .click();
+  const spread = async () => {
+    const p = (await pixel(page, 0.66, 0.33)) ?? [0, 0, 0];
+    return Math.max(...p) - Math.min(...p);
+  };
+  await expect.poll(spread).toBeLessThan(3);
+  // At 0% strength the photo is back to its own colours.
+  await page.locator("#filter-strength").fill("0");
+  await expect.poll(() => pixel(page, 0.66, 0.33)).toEqual([40, 80, 200]);
 });
 
 test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({

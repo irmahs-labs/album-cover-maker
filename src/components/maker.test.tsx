@@ -75,38 +75,39 @@ describe("maker: text placement", () => {
     within(screen.getByRole("group", { name })).getAllByRole(
       "button"
     ) as HTMLButtonElement[];
-  const spot = (name: string) =>
-    within(screen.getByRole("group", { name: "Text position" })).getByRole(
-      "button",
-      { name }
-    );
+  /** Picks a spot: its row in one group, its column in the other. */
+  const spot = async (row: string, column: string) => {
+    const pick = (group: string, name: string) =>
+      userEvent.click(
+        within(screen.getByRole("group", { name: group })).getByRole("button", {
+          name,
+        })
+      );
+    await pick("Vertical position", row);
+    await pick("Horizontal position", column);
+  };
   const pressedNames = (name: string) =>
     group(name)
       .filter(pressed)
-      .map((b) => b.getAttribute("aria-label"));
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
 
-  it("offers nine spots, starting bottom left", () => {
+  it("offers top, middle or bottom and left, center or right, starting bottom left", () => {
     render(<Maker />);
-    expect(
-      group("Text position").map((b) => b.getAttribute("aria-label"))
-    ).toEqual([
-      "top left",
-      "top center",
-      "top right",
-      "middle left",
-      "middle center",
-      "middle right",
-      "bottom left",
-      "bottom center",
-      "bottom right",
-    ]);
-    expect(pressedNames("Text position")).toEqual(["bottom left"]);
+    const names = (g: string) => group(g).map((b) => b.textContent);
+    expect(names("Vertical position")).toEqual(["top", "middle", "bottom"]);
+    expect(names("Horizontal position")).toEqual(["left", "center", "right"]);
+    expect(pressedNames("Vertical position")).toEqual(["bottom"]);
+    expect(pressedNames("Horizontal position")).toEqual(["left"]);
   });
 
-  it("moves the text to the spot you pick", async () => {
+  it("moves the text to the spot you pick, row and column separately", async () => {
     render(<Maker />);
-    await userEvent.click(spot("top right"));
-    expect(pressedNames("Text position")).toEqual(["top right"]);
+    await spot("top", "right");
+    expect(pressedNames("Vertical position")).toEqual(["top"]);
+    expect(pressedNames("Horizontal position")).toEqual(["right"]);
+    await spot("middle", "right");
+    expect(pressedNames("Vertical position")).toEqual(["middle"]);
+    expect(pressedNames("Horizontal position")).toEqual(["right"]);
   });
 
   it("aligns left, center or right, starting left", async () => {
@@ -121,7 +122,7 @@ describe("maker: text placement", () => {
     const note =
       "The label has the top left corner, so the text sits in the middle left.";
     expect(screen.queryByText(note)).toBeNull();
-    await userEvent.click(spot("top left"));
+    await spot("top", "left");
     expect(screen.getByText(note)).toBeTruthy();
     await userEvent.click(input("pa-show"));
     expect(screen.queryByText(note)).toBeNull();
@@ -130,7 +131,8 @@ describe("maker: text placement", () => {
   it("disables position and alignment when the cover has no text", async () => {
     render(<Maker />);
     await userEvent.click(input("show-text"));
-    expect(group("Text position").every((b) => b.disabled)).toBe(true);
+    expect(group("Vertical position").every((b) => b.disabled)).toBe(true);
+    expect(group("Horizontal position").every((b) => b.disabled)).toBe(true);
     expect(group("Text alignment").every((b) => b.disabled)).toBe(true);
   });
 
@@ -139,7 +141,10 @@ describe("maker: text placement", () => {
     const switches = screen
       .getAllByRole("switch")
       .map((el) => el.closest("label")?.textContent?.trim());
-    expect(switches).toEqual(["Show the label", "Show text on the cover"]);
+    expect([...switches].sort()).toEqual([
+      "Show text on the cover",
+      "Show the label",
+    ]);
   });
 });
 
@@ -439,6 +444,171 @@ describe("maker: photo", () => {
     expect(
       screen.getByText("Your photo stays in your browser. Nothing is uploaded.")
     ).toBeTruthy();
+  });
+});
+
+describe("maker: photo filters", () => {
+  const filters = () =>
+    within(screen.getByRole("group", { name: "Photo filter" })).getAllByRole(
+      "button"
+    ) as HTMLButtonElement[];
+
+  it("offers the six filters, Original chosen, all off until there is a photo", () => {
+    render(<Maker />);
+    expect(filters().map((b) => b.textContent)).toEqual([
+      "Original",
+      "Mono",
+      "Warm",
+      "Cool",
+      "Fade",
+      "Vivid",
+    ]);
+    expect(
+      filters()
+        .filter(pressed)
+        .map((b) => b.textContent)
+    ).toEqual(["Original"]);
+    expect(filters().every((b) => b.disabled)).toBe(true);
+    expect(input("filter-strength").disabled).toBe(true);
+  });
+
+  it("previews each filter on its own thumbnail", () => {
+    render(<Maker />);
+    const looks = filters().map((b) => b.querySelector("canvas")?.style.filter);
+    expect(looks).toEqual([
+      "none",
+      "grayscale(1)",
+      "sepia(0.35) saturate(1.2)",
+      "hue-rotate(-18deg) saturate(0.85) brightness(1.05)",
+      "contrast(0.8) brightness(1.12) saturate(0.7)",
+      "saturate(1.6) contrast(1.1)",
+    ]);
+  });
+
+  it("starts the strength at 100%", () => {
+    render(<Maker />);
+    expect(input("filter-strength").value).toBe("100");
+    expect(screen.getByText("Filter strength").textContent).toContain("100%");
+  });
+});
+
+describe("maker: player colours", () => {
+  const hue = (id: string) => Number(input(id).value);
+  const slide = (id: string, value: number) =>
+    fireEvent.change(input(id), { target: { value: String(value) } });
+  const lock = () => screen.getByRole("button", { name: /locked/u });
+
+  it("starts locked, so both sliders turn together", () => {
+    render(<Maker />);
+    expect(pressed(lock())).toBe(true);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([40, 35]);
+    slide("player-hue", 100);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([100, 95]);
+    slide("button-hue", 5);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([10, 5]);
+  });
+
+  it("wraps the other slider around the colour wheel", () => {
+    render(<Maker />);
+    slide("button-hue", 355);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([0, 355]);
+    slide("player-hue", 350);
+    expect(hue("button-hue")).toBe(345);
+  });
+
+  it("moves each slider on its own once unlocked", async () => {
+    render(<Maker />);
+    await userEvent.click(lock());
+    expect(lock().textContent).toBe("unlocked");
+    expect(pressed(lock())).toBe(false);
+    slide("player-hue", 200);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([200, 35]);
+    expect(
+      screen.getByText(/Unlocked, each slider moves on its own/u)
+    ).toBeTruthy();
+  });
+
+  it("undoes a locked drag as one step", async () => {
+    render(<Maker />);
+    slide("player-hue", 60);
+    slide("player-hue", 80);
+    await userEvent.click(screen.getByRole("button", { name: "undo" }));
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([40, 35]);
+  });
+});
+
+describe("maker: undo and redo", () => {
+  const undoButton = () => screen.getByRole("button", { name: "undo" });
+  const redoButton = () => screen.getByRole("button", { name: "redo" });
+  const sizePressed = () =>
+    within(screen.getByRole("group", { name: "Label size" }))
+      .getAllByRole("button")
+      .filter(pressed)
+      .map((b) => b.getAttribute("aria-label"));
+
+  it("has nothing to undo or redo at the start", () => {
+    render(<Maker />);
+    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
+    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("takes back a change and puts it back", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XXL 20%" }));
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["S 10%"]);
+    await userEvent.click(redoButton());
+    expect(sizePressed()).toEqual(["XXL 20%"]);
+    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("undoes a whole word typed at once in one step", async () => {
+    render(<Maker />);
+    await userEvent.clear(input("main-title"));
+    await userEvent.type(input("main-title"), "Sleepless");
+    await userEvent.click(undoButton());
+    expect(input("main-title").value).toBe(DEFAULT_STATE.title);
+  });
+
+  it("undoes each lucky roll on its own", async () => {
+    render(<Maker />);
+    const lucky = screen.getByRole("button", { name: "I'm feeling lucky" });
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    await userEvent.click(lucky);
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    await userEvent.click(lucky);
+    expect(sizePressed()).toEqual(["XXL 20%"]);
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["XS 8%"]);
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["S 10%"]);
+  });
+
+  it("answers Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y outside text fields", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(sizePressed()).toEqual(["S 10%"]);
+    await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+    await userEvent.keyboard("{Control>}z{/Control}{Control>}y{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+  });
+
+  it("leaves Ctrl+Z inside a text field to the field", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.click(input("main-title"));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+  });
+
+  it("starts the history afresh on start over", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.click(screen.getByRole("button", { name: "start over" }));
+    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

@@ -1,3 +1,4 @@
+import type { FilterId } from "./filters";
 import type { SubtitleFont, TextStyle, TitleFont } from "./fonts";
 import { PLAIN } from "./fonts";
 
@@ -55,9 +56,11 @@ export interface Photo {
 }
 
 export interface CoverState {
-  zoom: number; // 100-200 (%)
+  zoom: number; // 100-500 (%)
   panX: number; // -1..1, where the crop sits inside the spare width
   panY: number; // -1..1
+  filter: FilterId;
+  filterStrength: number; // 0-100 (%)
   showLabel: boolean;
   labelSize: number; // % of cover width
   labelCorner: Corner;
@@ -81,6 +84,8 @@ export interface CoverState {
 export const DEFAULT_STATE: CoverState = {
   buttonHue: 35,
   comboId: "abril-fatface-lato",
+  filter: "original",
+  filterStrength: 100,
   labelCorner: "top-left",
   labelSize: 10,
   panX: 0,
