@@ -15,6 +15,7 @@ import {
 } from "../lib/color";
 import { COMBOS, suggestCombos } from "../lib/combos";
 import type { Suggestion } from "../lib/combos";
+import { cssFilter, FILTERS } from "../lib/filters";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
 import { historyReducer, startHistory } from "../lib/history";
@@ -40,6 +41,7 @@ import {
   useFontsReady,
 } from "./cover-canvas";
 import type { Kind } from "./cover-canvas";
+import { filterPhoto } from "./filter-photo";
 import { FontPicker } from "./font-picker";
 import { Logo } from "./logo";
 
@@ -375,6 +377,11 @@ export function Maker() {
   );
 
   const suggestions = useMemo(() => suggestCombos(photoHues), [photoHues]);
+  // The photo as the previews show it: filtered, at most 1600 px across.
+  const shownPhoto = useMemo(
+    () => photo && filterPhoto(photo, state.filter, state.filterStrength, 1600),
+    [photo, state.filter, state.filterStrength]
+  );
 
   const applyCombo = useCallback(
     (sug: Suggestion) => setState((s) => ({ ...s, ...comboSettings(sug) })),
@@ -545,7 +552,9 @@ export function Maker() {
         player: "player-1080x1440.png",
         record: "record-3000x2000.jpeg",
       }[kind];
-      await exportImage(kind, state, photo, photoColor, `${name}-${file}`);
+      const full =
+        photo && filterPhoto(photo, state.filter, state.filterStrength);
+      await exportImage(kind, state, full, photoColor, `${name}-${file}`);
     } catch (error) {
       setError((error as Error).message);
     } finally {
@@ -572,6 +581,11 @@ export function Maker() {
   };
 
   const smallPhoto = photo && Math.min(photo.width, photo.height) < 3000;
+  // The bare photo, framed as on the cover, for the thumbnails.
+  const thumbState = useMemo(
+    () => ({ ...state, showLabel: false, showText: false }),
+    [state]
+  );
   // SAFETY: a TextPosition is always "<row>-<column>".
   const [row, column] = state.textPosition.split("-") as [
     (typeof ROWS)[number],
@@ -665,7 +679,7 @@ export function Maker() {
                 <CoverCanvas
                   kind="cover"
                   state={state}
-                  photo={photo}
+                  photo={shownPhoto}
                   width={coverWidth}
                   fontsTick={fontsTick}
                   role="img"
@@ -723,7 +737,7 @@ export function Maker() {
               <CoverCanvas
                 kind="player"
                 state={state}
-                photo={photo}
+                photo={shownPhoto}
                 width={250}
                 fontsTick={fontsTick}
                 className="player-canvas"
@@ -739,7 +753,7 @@ export function Maker() {
               <CoverCanvas
                 kind="record"
                 state={state}
-                photo={photo}
+                photo={shownPhoto}
                 width={recordWidth}
                 fontsTick={fontsTick}
                 background={photoColor}
@@ -766,7 +780,7 @@ export function Maker() {
                 <div className="photo-info">
                   <CoverCanvas
                     kind="cover"
-                    state={{ ...state, showLabel: false, showText: false }}
+                    state={thumbState}
                     photo={photo}
                     width={56}
                     fontsTick={0}
@@ -821,6 +835,53 @@ export function Maker() {
                   value={state.zoom}
                   disabled={!photo}
                   onChange={(e) => set("zoom", Number(e.target.value))}
+                />
+              </label>
+              <div className="field">
+                <span>Filter</span>
+                <div
+                  role="group"
+                  aria-label="Photo filter"
+                  className="filter-grid"
+                >
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className="filter"
+                      aria-pressed={state.filter === f.id}
+                      disabled={!photo}
+                      onClick={() => set("filter", f.id)}
+                    >
+                      <CoverCanvas
+                        kind="cover"
+                        state={thumbState}
+                        photo={photo}
+                        width={48}
+                        fontsTick={0}
+                        style={{ filter: cssFilter(f.id) }}
+                        aria-hidden="true"
+                      />
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label htmlFor="filter-strength" className="field">
+                <span className="field-row">
+                  Filter strength
+                  <span className="muted">{state.filterStrength}%</span>
+                </span>
+                <input
+                  id="filter-strength"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={state.filterStrength}
+                  disabled={!photo || state.filter === "original"}
+                  onChange={(e) =>
+                    set("filterStrength", Number(e.target.value))
+                  }
                 />
               </label>
             </fieldset>

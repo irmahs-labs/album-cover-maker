@@ -447,6 +447,51 @@ describe("maker: photo", () => {
   });
 });
 
+describe("maker: photo filters", () => {
+  const filters = () =>
+    within(screen.getByRole("group", { name: "Photo filter" })).getAllByRole(
+      "button"
+    ) as HTMLButtonElement[];
+
+  it("offers the six filters, Original chosen, all off until there is a photo", () => {
+    render(<Maker />);
+    expect(filters().map((b) => b.textContent)).toEqual([
+      "Original",
+      "Mono",
+      "Warm",
+      "Cool",
+      "Fade",
+      "Vivid",
+    ]);
+    expect(
+      filters()
+        .filter(pressed)
+        .map((b) => b.textContent)
+    ).toEqual(["Original"]);
+    expect(filters().every((b) => b.disabled)).toBe(true);
+    expect(input("filter-strength").disabled).toBe(true);
+  });
+
+  it("previews each filter on its own thumbnail", () => {
+    render(<Maker />);
+    const looks = filters().map((b) => b.querySelector("canvas")?.style.filter);
+    expect(looks).toEqual([
+      "none",
+      "grayscale(1)",
+      "sepia(0.35) saturate(1.2)",
+      "hue-rotate(-18deg) saturate(0.85) brightness(1.05)",
+      "contrast(0.8) brightness(1.12) saturate(0.7)",
+      "saturate(1.6) contrast(1.1)",
+    ]);
+  });
+
+  it("starts the strength at 100%", () => {
+    render(<Maker />);
+    expect(input("filter-strength").value).toBe("100");
+    expect(screen.getByText("Filter strength").textContent).toContain("100%");
+  });
+});
+
 describe("maker: undo and redo", () => {
   const undoButton = () => screen.getByRole("button", { name: "undo" });
   const redoButton = () => screen.getByRole("button", { name: "redo" });

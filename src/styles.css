@@ -736,6 +736,38 @@ input.switch:checked::after {
   opacity: 0.85;
 }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.filter {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.filter canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+.filter[aria-pressed="true"] {
+  font-weight: 700;
+}
+.filter[aria-pressed="true"] canvas {
+  box-shadow: 0 0 0 3px var(--bark);
+}
 .photo-info {
   display: flex;
   align-items: center;

@@ -185,6 +185,27 @@ test("dragging the title snaps it to one of nine spots", async ({ page }) => {
   await expect(page.locator(".spot-grid")).toHaveCount(0);
 });
 
+test("a filter changes the photo on the cover, by its strength", async ({
+  page,
+}) => {
+  await page.goto("/make");
+  await addPhoto(page);
+  // Inside the blue disc of the test photo.
+  await expect.poll(() => pixel(page, 0.66, 0.33)).toEqual([40, 80, 200]);
+  await page
+    .getByRole("group", { name: "Photo filter" })
+    .getByRole("button", { name: "Mono" })
+    .click();
+  const spread = async () => {
+    const p = (await pixel(page, 0.66, 0.33)) ?? [0, 0, 0];
+    return Math.max(...p) - Math.min(...p);
+  };
+  await expect.poll(spread).toBeLessThan(3);
+  // At 0% strength the photo is back to its own colours.
+  await page.locator("#filter-strength").fill("0");
+  await expect.poll(() => pixel(page, 0.66, 0.33)).toEqual([40, 80, 200]);
+});
+
 test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({
   page,
 }) => {
