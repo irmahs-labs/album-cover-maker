@@ -59,20 +59,16 @@ describe("suggestCombos", () => {
     expect(first.playerHue).toBe((200 + first.combo.playerShift + 360) % 360);
   });
 
-  it("gives a different order on shuffle", () => {
-    const a = suggestCombos([10, 120, 250], 0).map((s) => s.combo.id);
-    const b = suggestCombos([10, 120, 250], 1).map((s) => s.combo.id);
-    expect(a).not.toEqual(b);
-  });
-
-  it("shuffles to the same order for the same round", () => {
-    const a = suggestCombos([10], 4).map((s) => s.combo.id);
-    const b = suggestCombos([10], 4).map((s) => s.combo.id);
-    expect(a).toEqual(b);
+  it("keeps the listed order, taking turns with the photo's hues", () => {
+    const sugs = suggestCombos([10, 120, 250]);
+    expect(sugs.map((s) => s.combo.id)).toEqual(COMBOS.map((c) => c.id));
+    const base = (s: (typeof sugs)[number]) =>
+      (s.playerHue - s.combo.playerShift + 360) % 360;
+    expect(sugs.slice(0, 3).map(base)).toEqual([10, 120, 250]);
   });
 
   it("keeps hues inside 0-359", () => {
-    for (const s of suggestCombos([5, 355], 3)) {
+    for (const s of suggestCombos([5, 355])) {
       expect(s.playerHue).toBeGreaterThanOrEqual(0);
       expect(s.playerHue).toBeLessThan(360);
     }

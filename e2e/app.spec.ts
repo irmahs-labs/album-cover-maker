@@ -6,13 +6,11 @@ import type { Page } from "@playwright/test";
 import { pngSize, testPhoto } from "./photo";
 
 const addPhoto = (page: Page) =>
-  page
-    .locator("#photo-file")
-    .setInputFiles({
-      buffer: testPhoto(),
-      mimeType: "image/png",
-      name: "photo.png",
-    });
+  page.locator("#photo-file").setInputFiles({
+    buffer: testPhoto(),
+    mimeType: "image/png",
+    name: "photo.png",
+  });
 
 /** The preview's pixel at (x, y), as a fraction of the cover's size. */
 const pixel = (page: Page, x: number, y: number) =>
@@ -29,23 +27,31 @@ const pixel = (page: Page, x: number, y: number) =>
     },
     [x, y]
   );
-/** Share of the top-left label area (10% wide, 1.6 : 1, 3.5% in) that is black or white. */
-const labelShare = (page: Page) =>
-  page.locator(".cover-frame canvas").evaluate((canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext("2d");
-    const at = (f: number) => Math.round(canvas.width * f);
-    const data =
-      ctx?.getImageData(at(0.035), at(0.035), at(0.1), at(0.0625)).data ?? [];
-    let plain = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-      const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
-      if (grey && (r < 70 || r > 185)) {
-        plain += 1;
+/**
+ * Share of a label's area that is black or white: by default the top-left
+ * one (10% wide, 1.6 : 1, 3.5% in from the edges).
+ */
+const labelShare = (page: Page, corner = "top-left", width = 0.1) =>
+  page.locator(".cover-frame canvas").evaluate(
+    (canvas: HTMLCanvasElement, [where, w]) => {
+      const ctx = canvas.getContext("2d");
+      const at = (f: number) => Math.round(canvas.width * f);
+      const h = w / 1.6;
+      const x = where.endsWith("left") ? 0.035 : 1 - 0.035 - w;
+      const y = where.startsWith("top") ? 0.035 : 1 - 0.035 - h;
+      const data = ctx?.getImageData(at(x), at(y), at(w), at(h)).data ?? [];
+      let plain = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+        const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
+        if (grey && (r < 70 || r > 185)) {
+          plain += 1;
+        }
       }
-    }
-    return plain / (data.length / 4);
-  });
+      return plain / (data.length / 4);
+    },
+    [corner, width] as const
+  );
 
 const exportPng = async (page: Page, button: string) => {
   const [download] = await Promise.all([
@@ -88,6 +94,23 @@ test("a photo shows up on the cover, with the label on top", async ({
   await expect.poll(() => labelShare(page)).toBeGreaterThan(0.75);
   // ...and once it is switched off, the orange photo shows through.
   await page.locator("#pa-show").uncheck();
+  await expect.poll(() => labelShare(page)).toBeLessThan(0.05);
+});
+
+test("I'm feeling lucky redraws the cover with its new picks", async ({
+  page,
+}) => {
+  // Every roll lands on the last choice: an XXL label, bottom right.
+  await page.addInitScript(() => {
+    Math.random = () => 0.99;
+  });
+  await page.goto("/make");
+  await addPhoto(page);
+  await expect.poll(() => labelShare(page)).toBeGreaterThan(0.75);
+  await page.getByRole("button", { name: "I'm feeling lucky" }).click();
+  await expect
+    .poll(() => labelShare(page, "bottom-right", 0.2))
+    .toBeGreaterThan(0.75);
   await expect.poll(() => labelShare(page)).toBeLessThan(0.05);
 });
 
@@ -168,13 +191,11 @@ test("never contacts another site, photo and fonts included", async ({
   await page.getByRole("link", { exact: true, name: "start making" }).click();
   await addPhoto(page);
   for (const name of ["Grand Hotel", "DotGothic16", "Sacramento"]) {
-    const combo = page
-      .locator(".combo")
-      .filter({
-        has: page.locator(".combo-name", {
-          hasText: new RegExp(`^${name}$`, "u"),
-        }),
-      });
+    const combo = page.locator(".combo").filter({
+      has: page.locator(".combo-name", {
+        hasText: new RegExp(`^${name}$`, "u"),
+      }),
+    });
     await combo.scrollIntoViewIfNeeded();
     await combo.click();
   }

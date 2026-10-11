@@ -1,5 +1,5 @@
 import { ADVISORY_ASPECT, advisoryImage } from "./advisory";
-import { buttonColor, playerColor } from "./color";
+import { buttonColor, isDark, playerColor } from "./color";
 import { cssFont } from "./fonts";
 import type { TextStyle } from "./fonts";
 import { placedText } from "./state";
@@ -13,6 +13,14 @@ const BARK_GRID = "#4e6152";
 const SURFACE = "#dde87e";
 const SPROUT = "#b8d970";
 const CREAM = "#fff3cf";
+
+/** A soft shadow that lifts the text off the photo: dark, or light behind dark text. */
+function textShadow(ctx: Ctx, color: string) {
+  ctx.fillStyle = color;
+  ctx.shadowColor = isDark(color)
+    ? "rgba(255, 255, 255, 0.4)"
+    : "rgba(0, 0, 0, 0.5)";
+}
 const GOLD = "#f2d27a";
 
 /** Greedy word wrap. Words longer than `maxWidth` stay on their own line. */
@@ -186,8 +194,6 @@ export function drawCover(
 
   let textBox: Box | null = null;
   if (state.showText && (state.title.trim() || state.subtitle.trim())) {
-    ctx.fillStyle = CREAM;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowOffsetY = size * 0.004;
     ctx.shadowBlur = size * 0.024;
     ctx.textBaseline = "alphabetic";
@@ -211,6 +217,7 @@ export function drawCover(
     for (const line of block.lines) {
       y += line.gapBefore;
       ctx.font = line.font;
+      textShadow(ctx, line.color);
       const shift =
         state.textAlign === "left"
           ? 0
@@ -268,6 +275,7 @@ interface TextLine {
   px: number;
   tracking: number;
   style: TextStyle;
+  color: string;
   /** Ink width, without the tracking after the last letter. */
   width: number;
   /** Line height, and the baseline's distance from the line's top. */
@@ -296,6 +304,7 @@ function layoutText(
     px: number,
     tracking: number,
     style: TextStyle,
+    color: string,
     height: number,
     baseline: number
   ): TextLine[] => {
@@ -303,6 +312,7 @@ function layoutText(
     ctx.letterSpacing = `${tracking}px`;
     return wrapLines(text, maxW, measure).map((t) => ({
       baseline,
+      color,
       font,
       gapBefore: 0,
       height,
@@ -323,6 +333,7 @@ function layoutText(
       px,
       size * 0.006,
       state.subtitleStyle,
+      state.subtitleColor,
       px * 1.25,
       px * 1.03
     );
@@ -341,6 +352,7 @@ function layoutText(
         px,
         size * 0.002,
         state.titleStyle,
+        state.titleColor,
         px * 0.95,
         px * 0.87
       );
