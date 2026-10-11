@@ -9,6 +9,34 @@ export const CORNERS: Corner[] = [
   "bottom-right",
 ];
 
+type Row = "top" | "middle" | "bottom";
+type Column = "left" | "center" | "right";
+export type TextPosition = `${Row}-${Column}`;
+/** The nine spots the title and subtitle can sit in, in reading order. */
+export const TEXT_POSITIONS: TextPosition[] = (
+  ["top", "middle", "bottom"] as const
+).flatMap((row) =>
+  (["left", "center", "right"] as const).map(
+    (column): TextPosition => `${row}-${column}`
+  )
+);
+export type TextAlign = Column;
+export const TEXT_ALIGNS: TextAlign[] = ["left", "center", "right"];
+
+/**
+ * Where the text block is drawn: the spot picked, except that the label
+ * keeps its corner and the text moves to the middle of that side.
+ */
+export function placedText(
+  state: Pick<CoverState, "labelCorner" | "showLabel" | "textPosition">
+): TextPosition {
+  const { labelCorner, showLabel, textPosition } = state;
+  if (showLabel && textPosition === labelCorner) {
+    return `middle-${textPosition.endsWith("left") ? "left" : "right"}`;
+  }
+  return textPosition;
+}
+
 /** The advisory label's sizes, as a % of the cover's width. */
 export const LABEL_SIZES = [
   { name: "XS", percent: 8 },
@@ -40,7 +68,8 @@ export interface CoverState {
   subtitleFont: SubtitleFont;
   titleStyle: TextStyle;
   subtitleStyle: TextStyle;
-  playerShowText: boolean;
+  textPosition: TextPosition;
+  textAlign: TextAlign;
   playerHue: number;
   buttonHue: number;
   comboId: string | null;
@@ -54,12 +83,13 @@ export const DEFAULT_STATE: CoverState = {
   panX: 0,
   panY: 0,
   playerHue: 40,
-  playerShowText: true,
   showLabel: true,
   showText: true,
   subtitle: "Artist name",
   subtitleFont: "Lato",
   subtitleStyle: PLAIN,
+  textAlign: "left",
+  textPosition: "bottom-left",
   title: "Album title",
   titleFont: "Abril Fatface",
   titleStyle: PLAIN,

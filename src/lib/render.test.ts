@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { photoRect, wrapLines } from "./render";
-import { slug } from "./state";
+import { placedText, slug, TEXT_POSITIONS } from "./state";
 
 const measure = (s: string) => s.length * 10;
 
@@ -51,5 +51,33 @@ describe("slug", () => {
     expect(slug("Sleepless Nights Alexa")).toBe("sleepless-nights-alexa");
     expect(slug("Café Été!")).toBe("cafe-ete");
     expect(slug("???")).toBe("cover");
+  });
+});
+
+describe("placedText", () => {
+  it("leaves the text where it was put when the label is elsewhere or off", () => {
+    for (const textPosition of TEXT_POSITIONS) {
+      expect(
+        placedText({ labelCorner: "top-left", showLabel: false, textPosition })
+      ).toBe(textPosition);
+    }
+    expect(
+      placedText({
+        labelCorner: "top-left",
+        showLabel: true,
+        textPosition: "bottom-left",
+      })
+    ).toBe("bottom-left");
+  });
+
+  it("moves the text to the middle of the side when the label has its corner", () => {
+    const moved = (corner: "top-left" | "bottom-right") =>
+      placedText({
+        labelCorner: corner,
+        showLabel: true,
+        textPosition: corner,
+      });
+    expect(moved("top-left")).toBe("middle-left");
+    expect(moved("bottom-right")).toBe("middle-right");
   });
 });

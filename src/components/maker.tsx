@@ -6,8 +6,17 @@ import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
 import { photoRect } from "../lib/render";
-import { CORNERS, DEFAULT_STATE, LABEL_SIZES, slug } from "../lib/state";
-import type { CoverState, Photo } from "../lib/state";
+import type { Box } from "../lib/render";
+import {
+  CORNERS,
+  DEFAULT_STATE,
+  LABEL_SIZES,
+  placedText,
+  slug,
+  TEXT_ALIGNS,
+  TEXT_POSITIONS,
+} from "../lib/state";
+import type { CoverState, Photo, TextAlign } from "../lib/state";
 import { linkTo } from "../router";
 import { CoverCanvas, exportPng, useFontsReady } from "./cover-canvas";
 import { Logo } from "./logo";
@@ -137,6 +146,35 @@ function HueSlider({
   );
 }
 
+/** Three bars, lined up the way the text is. */
+function AlignIcon({ align }: { align: TextAlign }) {
+  const x = (w: number) =>
+    align === "left" ? 3 : align === "right" ? 21 - w : 12 - w / 2;
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      {[18, 12, 15].map((w, i) => (
+        <rect
+          key={w}
+          x={x(w)}
+          y={5 + i * 6}
+          width={w}
+          height={2.6}
+          rx={1.3}
+          fill="currentColor"
+        />
+      ))}
+    </svg>
+  );
+}
+
+const ROWS = ["top", "middle", "bottom"] as const;
+const COLUMNS = ["left", "center", "right"] as const;
+const third = (v: number) => Math.min(2, Math.max(0, Math.floor(v * 3)));
+/** The text spot under a point given as fractions of the cover's side. */
+const spotAt = (p: { x: number; y: number }) =>
+  `${ROWS[third(p.y)]}-${COLUMNS[third(p.x)]}` as const;
+const spotName = (spot: string) => spot.replace("-", " ");
+
 const hueTrack = (s: number, l: number) =>
   `linear-gradient(90deg, ${[0, 60, 120, 180, 240, 300, 360].map((h) => `hsl(${h} ${s}% ${l}%)`).join(", ")})`;
 
@@ -208,13 +246,37 @@ export function Maker() {
     [applyCombo, state.comboId]
   );
 
-  // Drag the preview to move the photo inside the square.
-  const drag = useRef<{
-    x: number;
-    y: number;
-    panX: number;
-    panY: number;
-  } | null>(null);
+  // Drag the title to one of nine spots, or anywhere else to move the photo
+  // inside the square.
+  const drag = useRef<
+    | { kind: "photo"; x: number; y: number; panX: number; panY: number }
+    | { kind: "text" }
+    | null
+  >(null);
+  const textBox = useRef<Box | null>(null);
+  const onTextBox = useCallback((box: Box | null) => {
+    textBox.current = box;
+  }, []);
+  const [draggingText, setDraggingText] = useState(false);
+  const [overText, setOverText] = useState(false);
+  const pointAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) / r.width,
+      y: (e.clientY - r.top) / r.height,
+    };
+  };
+  const onText = (p: { x: number; y: number }) => {
+    const b = textBox.current;
+    const pad = 0.02;
+    return (
+      b !== null &&
+      p.x >= b.x - pad &&
+      p.x <= b.x + b.w + pad &&
+      p.y >= b.y - pad &&
+      p.y <= b.y + b.h + pad
+    );
+  };
   const spare = (axis: "x" | "y") => {
     if (!photo) {
       return 0;
@@ -223,11 +285,18 @@ export function Maker() {
     return ((axis === "x" ? r.w : r.h) - coverWidth) / 2;
   };
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (onText(pointAt(e))) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { kind: "text" };
+      setDraggingText(true);
+      return;
+    }
     if (!photo) {
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = {
+      kind: "photo",
       panX: state.panX,
       panY: state.panY,
       x: e.clientX,
@@ -237,6 +306,17 @@ export function Maker() {
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const d = drag.current;
     if (!d) {
+      const over = onText(pointAt(e));
+      if (over !== overText) {
+        setOverText(over);
+      }
+      return;
+    }
+    if (d.kind === "text") {
+      const spot = spotAt(pointAt(e));
+      setState((s) =>
+        s.textPosition === spot ? s : { ...s, textPosition: spot }
+      );
       return;
     }
     const sx = spare("x");
@@ -250,6 +330,7 @@ export function Maker() {
   };
   const onPointerUp = () => {
     drag.current = null;
+    setDraggingText(false);
   };
   const onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
     const step = e.shiftKey ? 0.2 : 0.05;
@@ -366,13 +447,33 @@ export function Maker() {
                   role="img"
                   aria-label={`Album cover preview: ${state.title} by ${state.subtitle}`}
                   tabIndex={photo ? 0 : -1}
-                  className={photo ? "draggable" : undefined}
+                  className={
+                    overText || draggingText
+                      ? "text-draggable"
+                      : photo
+                        ? "draggable"
+                        : undefined
+                  }
+                  onTextBox={onTextBox}
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
                   onPointerCancel={onPointerUp}
+                  onPointerLeave={() => setOverText(false)}
                   onKeyDown={onKeyDown}
                 />
+                {draggingText && (
+                  <div className="spot-grid" aria-hidden="true">
+                    {TEXT_POSITIONS.map((spot) => (
+                      <span
+                        key={spot}
+                        className={
+                          spot === state.textPosition ? "active" : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
                 {!photo && (
                   <button
                     type="button"
@@ -387,7 +488,7 @@ export function Maker() {
             </div>
             <p className="hint center">
               {photo
-                ? "Drag the cover (or use the arrow keys) to move your photo."
+                ? "Drag the title to place it, or anywhere else to move your photo (arrow keys work too)."
                 : "Your photo stays in your browser. Nothing is uploaded."}
             </p>
           </fieldset>
@@ -476,17 +577,6 @@ export function Maker() {
 
             <fieldset className="panel grow">
               <legend>player</legend>
-              <label htmlFor="player-text" className="switch-row">
-                Show title and subtitle
-                <input
-                  id="player-text"
-                  className="switch"
-                  type="checkbox"
-                  role="switch"
-                  checked={state.playerShowText}
-                  onChange={(e) => set("playerShowText", e.target.checked)}
-                />
-              </label>
               <HueSlider
                 id="player-hue"
                 label="Player"
@@ -547,6 +637,56 @@ export function Maker() {
                 onChange={(e) => set("subtitle", e.target.value)}
               />
             </label>
+            <div className="placement">
+              <div className="field">
+                <span>Position</span>
+                <div
+                  role="group"
+                  aria-label="Text position"
+                  className="spot-buttons"
+                >
+                  {TEXT_POSITIONS.map((spot) => (
+                    <button
+                      key={spot}
+                      type="button"
+                      className="toggle spot"
+                      aria-label={spotName(spot)}
+                      aria-pressed={state.textPosition === spot}
+                      disabled={!state.showText}
+                      onClick={() => set("textPosition", spot)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <span>Alignment</span>
+                <div
+                  role="group"
+                  aria-label="Text alignment"
+                  className="align-buttons"
+                >
+                  {TEXT_ALIGNS.map((align) => (
+                    <button
+                      key={align}
+                      type="button"
+                      className="toggle"
+                      aria-label={`Align ${align}`}
+                      aria-pressed={state.textAlign === align}
+                      disabled={!state.showText}
+                      onClick={() => set("textAlign", align)}
+                    >
+                      <AlignIcon align={align} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {state.showText && placedText(state) !== state.textPosition && (
+              <p className="hint">
+                The label has the {spotName(state.labelCorner)} corner, so the
+                text sits in the {spotName(placedText(state))}.
+              </p>
+            )}
             <div className="field">
               <label htmlFor="title-font">Title font</label>
               <select
