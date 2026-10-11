@@ -86,6 +86,19 @@ describe("drawCover: parental advisory label", () => {
     expect(call?.args.slice(3)).toEqual([200, 125]);
   });
 
+  it("goes up to half the cover's width", () => {
+    const call = labelCall(
+      drawn({ labelCorner: "bottom-right", labelSize: 50 })
+    );
+    expect(call?.args).toEqual([
+      label,
+      1000 - 35 - 500,
+      1000 - 35 - 312.5,
+      500,
+      312.5,
+    ]);
+  });
+
   it("is left out when switched off", () => {
     expect(labelCall(drawn({ showLabel: false }))).toBeUndefined();
   });
@@ -169,6 +182,28 @@ describe("drawCover: text", () => {
     );
     expect(lines[0].px).toBeLessThan(124);
     expect(lines[0].y).toBeGreaterThan(300 - lines[0].px);
+    expect(lines.every(fits)).toBe(true);
+  });
+
+  // A 50% label is 500 × 312.5, 35 in from the edges.
+  const longTitle = Array.from({ length: 30 }, () => "Word").join(" ");
+  const titleUnderBigLabel = (labelCorner: Corner) =>
+    drawn({ labelCorner, labelSize: 50, subtitle: "", title: longTitle })
+      .texts()
+      .sort((a, b) => a.y - b.y);
+  // Roughly where a line's capitals reach above its baseline.
+  const capTop = (line: { y: number; px: number }) => line.y - line.px * 0.8;
+
+  it("keeps a long title below a 50% label in a top corner", () => {
+    const lines = titleUnderBigLabel("top-right");
+    expect(capTop(lines[0])).toBeGreaterThanOrEqual(35 + 312.5);
+    expect(lines.every(fits)).toBe(true);
+  });
+
+  it("keeps a long title above a 50% label in a bottom corner, and on the cover", () => {
+    const lines = titleUnderBigLabel("bottom-left");
+    expect(lines.at(-1)?.y).toBeLessThanOrEqual(1000 - 35 - 312.5);
+    expect(capTop(lines[0])).toBeGreaterThanOrEqual(50);
     expect(lines.every(fits)).toBe(true);
   });
 

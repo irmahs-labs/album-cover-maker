@@ -188,9 +188,16 @@ export function drawCover(
     const left = size * 0.06;
     const maxW = size * 0.88;
     let bottom = size * 0.95;
-    // Keep the text clear of a label sitting in a bottom corner.
+    // The text stays below this line: the cover's top margin, or under a
+    // label sitting in a top corner.
+    let top = size * 0.05;
+    // Keep the text clear of the label, wherever it sits.
+    const labelClearance =
+      (size * state.labelSize) / 100 / ADVISORY_ASPECT + size * 0.02;
     if (state.showLabel && state.labelCorner.startsWith("bottom")) {
-      bottom -= (size * state.labelSize) / 100 / ADVISORY_ASPECT + size * 0.02;
+      bottom -= labelClearance;
+    } else if (state.showLabel) {
+      top = size * 0.035 + labelClearance;
     }
     ctx.fillStyle = CREAM;
     ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
@@ -226,13 +233,15 @@ export function drawCover(
       const tracking = size * 0.002;
       const measure = (s: string) => ctx.measureText(s).width;
       let lines: string[] = [];
-      // Shrink until every line fits and the block stays in the lower 70%.
+      // Shrink until every line fits and the block stays in the lower 70%,
+      // in the room left between the text's top line and the subtitle.
+      const room = Math.min(size * 0.7, bottom - top);
       for (let tries = 0; tries < 30; tries++) {
         ctx.font = cssFont(state.titleFont, state.titleStyle, px);
         ctx.letterSpacing = `${tracking}px`;
         lines = wrapLines(state.title.trim(), maxW, measure);
         const tooWide = lines.some((l) => measure(l) > maxW);
-        const tooTall = lines.length * px * 0.95 > size * 0.7;
+        const tooTall = lines.length * px * 0.95 > room;
         if (!tooWide && !tooTall) {
           break;
         }
