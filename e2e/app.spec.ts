@@ -27,23 +27,31 @@ const pixel = (page: Page, x: number, y: number) =>
     },
     [x, y]
   );
-/** Share of the top-left label area (10% wide, 1.6 : 1, 3.5% in) that is black or white. */
-const labelShare = (page: Page) =>
-  page.locator(".cover-frame canvas").evaluate((canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext("2d");
-    const at = (f: number) => Math.round(canvas.width * f);
-    const data =
-      ctx?.getImageData(at(0.035), at(0.035), at(0.1), at(0.0625)).data ?? [];
-    let plain = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-      const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
-      if (grey && (r < 70 || r > 185)) {
-        plain += 1;
+/**
+ * Share of a label's area that is black or white: by default the top-left
+ * one (10% wide, 1.6 : 1, 3.5% in from the edges).
+ */
+const labelShare = (page: Page, corner = "top-left", width = 0.1) =>
+  page.locator(".cover-frame canvas").evaluate(
+    (canvas: HTMLCanvasElement, [where, w]) => {
+      const ctx = canvas.getContext("2d");
+      const at = (f: number) => Math.round(canvas.width * f);
+      const h = w / 1.6;
+      const x = where.endsWith("left") ? 0.035 : 1 - 0.035 - w;
+      const y = where.startsWith("top") ? 0.035 : 1 - 0.035 - h;
+      const data = ctx?.getImageData(at(x), at(y), at(w), at(h)).data ?? [];
+      let plain = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+        const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
+        if (grey && (r < 70 || r > 185)) {
+          plain += 1;
+        }
       }
-    }
-    return plain / (data.length / 4);
-  });
+      return plain / (data.length / 4);
+    },
+    [corner, width] as const
+  );
 
 const exportFile = async (page: Page, button: string) => {
   const [download] = await Promise.all([
@@ -122,6 +130,23 @@ test("the record's backdrop takes the photo's main colour", async ({
       return r > g && g > b && r > 190;
     })
     .toBe(true);
+});
+
+test("I'm feeling lucky redraws the cover with its new picks", async ({
+  page,
+}) => {
+  // Every roll lands on the last choice: an XXL label, bottom right.
+  await page.addInitScript(() => {
+    Math.random = () => 0.99;
+  });
+  await page.goto("/make");
+  await addPhoto(page);
+  await expect.poll(() => labelShare(page)).toBeGreaterThan(0.75);
+  await page.getByRole("button", { name: "I'm feeling lucky" }).click();
+  await expect
+    .poll(() => labelShare(page, "bottom-right", 0.2))
+    .toBeGreaterThan(0.75);
+  await expect.poll(() => labelShare(page)).toBeLessThan(0.05);
 });
 
 test("dragging the title snaps it to one of nine spots", async ({ page }) => {

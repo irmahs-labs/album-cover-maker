@@ -5,6 +5,7 @@ import {
   dominantColor,
   dominantHues,
   hslToHex,
+  isDark,
   playerColor,
   rgbToHsl,
 } from "./color";
@@ -83,5 +84,14 @@ describe("dominantColor", () => {
   it("falls back when nothing is opaque", () => {
     expect(dominantColor(pixels([4, [9, 9, 9, 0]]))).toBe("#3B4A42");
     expect(dominantColor([], "#123456")).toBe("#123456");
+  });
+});
+
+describe("isDark", () => {
+  it("tells dark text colours from light ones", () => {
+    expect(isDark("#1f2420")).toBe(true);
+    expect(isDark("#000000")).toBe(true);
+    expect(isDark("#fff3cf")).toBe(false);
+    expect(isDark("#ffffff")).toBe(false);
   });
 });

@@ -10,6 +10,7 @@ import { COMBOS, suggestCombos } from "../lib/combos";
 import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
+import { feelingLucky } from "../lib/lucky";
 import { photoRect } from "../lib/render";
 import type { Box } from "../lib/render";
 import {
@@ -161,6 +162,30 @@ function HueSlider({
   );
 }
 
+function ColorInput({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label htmlFor={id} className="color-input" title={`${label}: ${value}`}>
+      <span className="visually-hidden">{label}</span>
+      <input
+        id={id}
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  );
+}
+
 /** Three bars, lined up the way the text is. */
 function AlignIcon({ align }: { align: TextAlign }) {
   const x = (w: number) =>
@@ -198,7 +223,6 @@ export function Maker() {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [photoHues, setPhotoHues] = useState<number[]>([40]);
   const [photoColor, setPhotoColor] = useState(BLANK_BACKGROUND);
-  const [round, setRound] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Kind | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -213,10 +237,7 @@ export function Maker() {
     []
   );
 
-  const suggestions = useMemo(
-    () => suggestCombos(photoHues, round),
-    [photoHues, round]
-  );
+  const suggestions = useMemo(() => suggestCombos(photoHues), [photoHues]);
 
   const applyCombo = useCallback((sug: Suggestion) => {
     setState((s) => ({
@@ -249,13 +270,12 @@ export function Maker() {
         });
         setPhotoHues(hues);
         setPhotoColor(color);
-        setRound(0);
         setError(null);
         setState((s) => ({ ...s, panX: 0, panY: 0, zoom: 100 }));
         // Re-apply the chosen combo with the new photo's colours.
         const current =
-          suggestCombos(hues, 0).find((x) => x.combo.id === state.comboId) ??
-          suggestCombos(hues, 0)[0];
+          suggestCombos(hues).find((x) => x.combo.id === state.comboId) ??
+          suggestCombos(hues)[0];
         applyCombo(current);
       } catch (error) {
         setError((error as Error).message);
@@ -402,7 +422,6 @@ export function Maker() {
     });
     setPhotoHues([40]);
     setPhotoColor(BLANK_BACKGROUND);
-    setRound(0);
     setError(null);
     setState(DEFAULT_STATE);
   };
@@ -508,6 +527,29 @@ export function Maker() {
                 ? "Drag the title to place it, or anywhere else to move your photo (arrow keys work too)."
                 : "Your photo stays in your browser. Nothing is uploaded."}
             </p>
+            <div className="cover-tools">
+              <label htmlFor="zoom" className="field zoom-field">
+                <span className="field-row">
+                  Zoom<span className="muted">{state.zoom}%</span>
+                </span>
+                <input
+                  id="zoom"
+                  type="range"
+                  min={100}
+                  max={500}
+                  value={state.zoom}
+                  disabled={!photo}
+                  onChange={(e) => set("zoom", Number(e.target.value))}
+                />
+              </label>
+              <button
+                type="button"
+                className="pill primary lucky"
+                onClick={() => setState((s) => feelingLucky(s, photoHues))}
+              >
+                I'm feeling lucky
+              </button>
+            </div>
           </fieldset>
 
           <fieldset className="panel player-panel">
@@ -743,13 +785,21 @@ export function Maker() {
                   <option key={f}>{f}</option>
                 ))}
               </select>
-              <StyleButtons
-                label="Title"
-                value={state.titleStyle}
-                onChange={(v) =>
-                  setState((s) => ({ ...s, comboId: null, titleStyle: v }))
-                }
-              />
+              <div className="style-row">
+                <StyleButtons
+                  label="Title"
+                  value={state.titleStyle}
+                  onChange={(v) =>
+                    setState((s) => ({ ...s, comboId: null, titleStyle: v }))
+                  }
+                />
+                <ColorInput
+                  id="title-color"
+                  label="Title colour"
+                  value={state.titleColor}
+                  onChange={(v) => set("titleColor", v)}
+                />
+              </div>
             </div>
             <div className="field">
               <label htmlFor="subtitle-font">Subtitle font</label>
@@ -772,11 +822,19 @@ export function Maker() {
                   <option key={f}>{f}</option>
                 ))}
               </select>
-              <StyleButtons
-                label="Subtitle"
-                value={state.subtitleStyle}
-                onChange={(v) => set("subtitleStyle", v)}
-              />
+              <div className="style-row">
+                <StyleButtons
+                  label="Subtitle"
+                  value={state.subtitleStyle}
+                  onChange={(v) => set("subtitleStyle", v)}
+                />
+                <ColorInput
+                  id="subtitle-color"
+                  label="Subtitle colour"
+                  value={state.subtitleColor}
+                  onChange={(v) => set("subtitleColor", v)}
+                />
+              </div>
             </div>
             <p className="hint">
               Title and subtitle fonts are separate sets, so the two never
@@ -784,7 +842,7 @@ export function Maker() {
             </p>
           </fieldset>
 
-          <fieldset className="panel">
+          <fieldset className="panel combos-panel">
             <legend>combos</legend>
             <p className="lead">
               {photo
@@ -793,56 +851,51 @@ export function Maker() {
               Each of the {COMBOS.length} sets the cover fonts and player
               colours.
             </p>
-            <div
-              role="list"
-              aria-label="Suggested combos"
-              className="combo-list"
-            >
-              {suggestions.map((sug) => {
-                const active =
-                  state.comboId === sug.combo.id &&
-                  state.playerHue === sug.playerHue &&
-                  state.buttonHue === sug.buttonHue;
-                return (
-                  <div role="listitem" key={sug.combo.id}>
-                    <button
-                      type="button"
-                      className="combo"
-                      aria-pressed={active}
-                      onClick={() => applyCombo(sug)}
-                    >
-                      <span
-                        className="combo-swatch"
-                        style={{
-                          background: playerColor(sug.playerHue),
-                          color: buttonColor(sug.buttonHue),
-                          font: cssFont(
-                            sug.combo.titleFont,
-                            sug.combo.titleStyle,
-                            24
-                          ),
-                        }}
+            <div className="combo-scroll">
+              <div
+                role="list"
+                aria-label="Suggested combos"
+                className="combo-list"
+              >
+                {suggestions.map((sug) => {
+                  const active =
+                    state.comboId === sug.combo.id &&
+                    state.playerHue === sug.playerHue &&
+                    state.buttonHue === sug.buttonHue;
+                  return (
+                    <div role="listitem" key={sug.combo.id}>
+                      <button
+                        type="button"
+                        className="combo"
+                        aria-pressed={active}
+                        onClick={() => applyCombo(sug)}
                       >
-                        Aa
-                      </span>
-                      <span className="combo-text">
-                        <span className="combo-name">{sug.combo.name}</span>
-                        <span className="combo-fonts">
-                          with {sug.combo.subtitleFont}
+                        <span
+                          className="combo-swatch"
+                          style={{
+                            background: playerColor(sug.playerHue),
+                            color: buttonColor(sug.buttonHue),
+                            font: cssFont(
+                              sug.combo.titleFont,
+                              sug.combo.titleStyle,
+                              24
+                            ),
+                          }}
+                        >
+                          Aa
                         </span>
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
+                        <span className="combo-text">
+                          <span className="combo-name">{sug.combo.name}</span>
+                          <span className="combo-fonts">
+                            with {sug.combo.subtitleFont}
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <button
-              type="button"
-              className="pill"
-              onClick={() => setRound((r) => r + 1)}
-            >
-              shuffle ideas
-            </button>
           </fieldset>
 
           <div className="stack">
@@ -895,20 +948,6 @@ export function Maker() {
               >
                 {photo ? "replace photo" : "choose photo"}
               </button>
-              <label htmlFor="zoom" className="field">
-                <span className="field-row">
-                  Zoom<span className="muted">{state.zoom}%</span>
-                </span>
-                <input
-                  id="zoom"
-                  type="range"
-                  min={100}
-                  max={200}
-                  value={state.zoom}
-                  disabled={!photo}
-                  onChange={(e) => set("zoom", Number(e.target.value))}
-                />
-              </label>
             </fieldset>
 
             <fieldset className="panel grow">

@@ -65,6 +65,13 @@ export function rgbToHsl(
   return [h * 60, s, l];
 }
 
+/** Whether a #rrggbb colour is dark enough to want a light shadow behind it. */
+export function isDark(hex: string): boolean {
+  const n = Number.parseInt(hex.slice(1, 7), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 100;
+}
+
 /** Player background: a pale tint of the hue. */
 export const playerColor = (hue: number) => hslToHex(hue, 62, 86);
 /** Player buttons and text: a deep shade of the hue, dark enough to read on any player colour. */

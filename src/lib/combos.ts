@@ -50,27 +50,14 @@ export interface Suggestion {
 
 const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
 
-/** The combos in a fixed shuffled order for each round; round 0 is the listed order. */
-const shuffled = (round: number) => {
-  const order = [...COMBOS];
-  let seed = round;
-  for (let i = order.length - 1; i > 0 && round > 0; i -= 1) {
-    seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
-    const j = seed % (i + 1);
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-  return order;
-};
-
 /**
- * Turns the photo's hues into combo suggestions. `round` (from "shuffle
- * ideas") reshuffles the list and rotates which photo hue each combo
- * starts from, so every shuffle gives a different set.
+ * Turns the photo's hues into combo suggestions, in the listed order. The
+ * combos take turns starting from each photo hue, so the list mixes them.
  */
-export function suggestCombos(photoHues: number[], round = 0): Suggestion[] {
+export function suggestCombos(photoHues: number[]): Suggestion[] {
   const hues = photoHues.length ? photoHues : [40];
-  return shuffled(round).map((combo, i) => {
-    const base = hues[(i + round) % hues.length];
+  return COMBOS.map((combo, i) => {
+    const base = hues[i % hues.length];
     return {
       buttonHue: wrap(base + combo.buttonShift),
       combo,

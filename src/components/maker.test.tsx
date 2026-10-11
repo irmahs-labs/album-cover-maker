@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { COMBOS } from "../lib/combos";
+import { textColors } from "../lib/lucky";
 import { DEFAULT_STATE } from "../lib/state";
 import { setUpDom } from "./dom-test-setup";
 import { Maker } from "./maker";
@@ -170,18 +171,80 @@ describe("maker: combos", () => {
     expect(highlighted).toHaveLength(0);
   });
 
-  it("reshuffles the list", async () => {
+  it("has no shuffle button any more", () => {
     render(<Maker />);
-    const order = () =>
-      [...comboList().querySelectorAll(".combo-name")].map(
-        (n) => n.textContent
-      );
-    const before = order();
-    await userEvent.click(
-      screen.getByRole("button", { name: "shuffle ideas" })
+    expect(screen.queryByRole("button", { name: "shuffle ideas" })).toBeNull();
+  });
+});
+
+describe("maker: I'm feeling lucky", () => {
+  const lucky = () =>
+    userEvent.click(screen.getByRole("button", { name: "I'm feeling lucky" }));
+  const pressedIn = (group: string) =>
+    within(screen.getByRole("group", { name: group }))
+      .getAllByRole("button")
+      .filter(pressed)
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+
+  it("rolls the label, fonts, text colours and treatment, and player colours", async () => {
+    render(<Maker />);
+    // Every roll lands on the last choice, and no treatment is switched on.
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    await lucky();
+    const last = COMBOS.at(-1);
+    expect(pressedIn("Label size")).toEqual(["XXL 20%"]);
+    expect(pressedIn("Label corner")).toEqual(["bottom right"]);
+    expect(select("title-font").value).toBe(last?.titleFont);
+    expect(select("subtitle-font").value).toBe(last?.subtitleFont);
+    expect(input("title-color").value).toBe(textColors([40]).at(-1));
+    expect(input("subtitle-color").value).toBe(textColors([40]).at(-1));
+    expect(pressedIn("Subtitle font style")).toEqual([]);
+    // 40 + 0.98 × 90, and the buttons opposite it on the wheel.
+    expect(input("player-hue").value).toBe("128");
+    expect(input("button-hue").value).toBe("308");
+  });
+
+  it("can switch every treatment on", async () => {
+    render(<Maker />);
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    await lucky();
+    expect(pressedIn("Title font style")).toEqual([
+      "Title bold",
+      "Title italic",
+      "Title underline",
+      "Title strikethrough",
+    ]);
+    expect(pressedIn("Label size")).toEqual(["XS 8%"]);
+  });
+
+  it("keeps the words, and whether the label and text show", async () => {
+    render(<Maker />);
+    await userEvent.clear(input("main-title"));
+    await userEvent.type(input("main-title"), "Sleepless Nights");
+    await userEvent.click(input("pa-show"));
+    await lucky();
+    expect(input("main-title").value).toBe("Sleepless Nights");
+    expect(input("subtitle").value).toBe(DEFAULT_STATE.subtitle);
+    expect(input("pa-show").checked).toBe(false);
+    expect(input("show-text").checked).toBe(true);
+  });
+});
+
+describe("maker: text colours", () => {
+  it("starts both in cream and changes each on its own", () => {
+    render(<Maker />);
+    expect(input("title-color").value).toBe("#fff3cf");
+    fireEvent.change(input("title-color"), { target: { value: "#1f2420" } });
+    expect(input("title-color").value).toBe("#1f2420");
+    expect(input("subtitle-color").value).toBe("#fff3cf");
+  });
+
+  it("names both pickers", () => {
+    render(<Maker />);
+    expect(screen.getByLabelText("Title colour")).toBe(input("title-color"));
+    expect(screen.getByLabelText("Subtitle colour")).toBe(
+      input("subtitle-color")
     );
-    expect(order()).not.toEqual(before);
-    expect([...order()].sort()).toEqual([...before].sort());
   });
 });
 
@@ -254,9 +317,10 @@ describe("maker: photo", () => {
   const upload = (file: File) =>
     fireEvent.change(input("photo-file"), { target: { files: [file] } });
 
-  it("has zoom off until there is a photo", () => {
+  it("has zoom off until there is a photo, and it goes from 100% to 500%", () => {
     render(<Maker />);
     expect(input("zoom").disabled).toBe(true);
+    expect([input("zoom").min, input("zoom").max]).toEqual(["100", "500"]);
     expect(screen.getByRole("button", { name: "choose photo" })).toBeTruthy();
   });
 
