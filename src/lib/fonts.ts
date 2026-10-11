@@ -109,37 +109,13 @@ export function cssFont(family: string, style: TextStyle, px: number): string {
 }
 
 /**
- * One Google Fonts stylesheet for every family above. Asking each for
- * regular, bold and both italics is safe: Google only returns the faces a
- * family has, and the browser fakes the rest.
+ * Waits until the given font faces are usable on a canvas. Never rejects.
+ * The faces are declared in src/font-faces.css and served with the site
+ * (Fontsource packages), so nothing is fetched from Google.
  */
-export const fontsStylesheetUrl = () => {
-  const families = unique(PAIRS.flat()).map(
-    (f) => `family=${f.replaceAll(" ", "+")}:ital,wght@0,400;0,700;1,400;1,700`
-  );
-  return `https://fonts.googleapis.com/css2?${families.join("&")}&display=swap`;
-};
-
-let stylesheet: Promise<void> | null = null;
-
-/** Adds the stylesheet once; resolves when it has loaded or failed. */
-const ensureStylesheet = () => {
-  stylesheet ??= new Promise<void>((resolve) => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = fontsStylesheetUrl();
-    link.addEventListener("load", () => resolve());
-    link.addEventListener("error", () => resolve());
-    document.head.append(link);
-  });
-  return stylesheet;
-};
-
-/** Waits until the given font faces are usable on a canvas. Never rejects. */
 export async function loadFonts(specs: string[]): Promise<void> {
   if (typeof document === "undefined" || !document.fonts) {
     return;
   }
-  await ensureStylesheet();
   await Promise.all(specs.map((s) => document.fonts.load(s).catch(() => [])));
 }
