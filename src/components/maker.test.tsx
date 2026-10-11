@@ -75,38 +75,39 @@ describe("maker: text placement", () => {
     within(screen.getByRole("group", { name })).getAllByRole(
       "button"
     ) as HTMLButtonElement[];
-  const spot = (name: string) =>
-    within(screen.getByRole("group", { name: "Text position" })).getByRole(
-      "button",
-      { name }
-    );
+  /** Picks a spot: its row in one group, its column in the other. */
+  const spot = async (row: string, column: string) => {
+    const pick = (group: string, name: string) =>
+      userEvent.click(
+        within(screen.getByRole("group", { name: group })).getByRole("button", {
+          name,
+        })
+      );
+    await pick("Vertical position", row);
+    await pick("Horizontal position", column);
+  };
   const pressedNames = (name: string) =>
     group(name)
       .filter(pressed)
-      .map((b) => b.getAttribute("aria-label"));
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
 
-  it("offers nine spots, starting bottom left", () => {
+  it("offers top, middle or bottom and left, center or right, starting bottom left", () => {
     render(<Maker />);
-    expect(
-      group("Text position").map((b) => b.getAttribute("aria-label"))
-    ).toEqual([
-      "top left",
-      "top center",
-      "top right",
-      "middle left",
-      "middle center",
-      "middle right",
-      "bottom left",
-      "bottom center",
-      "bottom right",
-    ]);
-    expect(pressedNames("Text position")).toEqual(["bottom left"]);
+    const names = (g: string) => group(g).map((b) => b.textContent);
+    expect(names("Vertical position")).toEqual(["top", "middle", "bottom"]);
+    expect(names("Horizontal position")).toEqual(["left", "center", "right"]);
+    expect(pressedNames("Vertical position")).toEqual(["bottom"]);
+    expect(pressedNames("Horizontal position")).toEqual(["left"]);
   });
 
-  it("moves the text to the spot you pick", async () => {
+  it("moves the text to the spot you pick, row and column separately", async () => {
     render(<Maker />);
-    await userEvent.click(spot("top right"));
-    expect(pressedNames("Text position")).toEqual(["top right"]);
+    await spot("top", "right");
+    expect(pressedNames("Vertical position")).toEqual(["top"]);
+    expect(pressedNames("Horizontal position")).toEqual(["right"]);
+    await spot("middle", "right");
+    expect(pressedNames("Vertical position")).toEqual(["middle"]);
+    expect(pressedNames("Horizontal position")).toEqual(["right"]);
   });
 
   it("aligns left, center or right, starting left", async () => {
@@ -121,7 +122,7 @@ describe("maker: text placement", () => {
     const note =
       "The label has the top left corner, so the text sits in the middle left.";
     expect(screen.queryByText(note)).toBeNull();
-    await userEvent.click(spot("top left"));
+    await spot("top", "left");
     expect(screen.getByText(note)).toBeTruthy();
     await userEvent.click(input("pa-show"));
     expect(screen.queryByText(note)).toBeNull();
@@ -130,7 +131,8 @@ describe("maker: text placement", () => {
   it("disables position and alignment when the cover has no text", async () => {
     render(<Maker />);
     await userEvent.click(input("show-text"));
-    expect(group("Text position").every((b) => b.disabled)).toBe(true);
+    expect(group("Vertical position").every((b) => b.disabled)).toBe(true);
+    expect(group("Horizontal position").every((b) => b.disabled)).toBe(true);
     expect(group("Text alignment").every((b) => b.disabled)).toBe(true);
   });
 
@@ -139,7 +141,10 @@ describe("maker: text placement", () => {
     const switches = screen
       .getAllByRole("switch")
       .map((el) => el.closest("label")?.textContent?.trim());
-    expect(switches).toEqual(["Show the label", "Show text on the cover"]);
+    expect([...switches].sort()).toEqual([
+      "Show text on the cover",
+      "Show the label",
+    ]);
   });
 });
 

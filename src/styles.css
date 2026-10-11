@@ -113,12 +113,35 @@ input:disabled {
   font-size: 14px;
   color: var(--moss-deep);
 }
+/* The maker's header: brand, the two big actions in the middle, then the hint. */
+.maker-topbar > .brand,
+.topbar-end {
+  flex: 1 1 0;
+  min-width: max-content;
+}
+.topbar-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.topbar-actions .pill.primary {
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.topbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 18px;
+}
 
 /* Buttons */
 .pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   align-self: flex-start;
   min-height: 42px;
   padding: 6px 16px;
@@ -147,6 +170,9 @@ input:disabled {
   min-height: 48px;
   padding: 8px 22px;
   font-size: 16px;
+}
+.pill.wide {
+  align-self: stretch;
 }
 .pill.small {
   min-height: 32px;
@@ -405,13 +431,14 @@ input.switch:checked::after {
   align-items: stretch;
 }
 .cover-panel {
-  flex: 5 1 440px;
+  flex: 400 1 0;
+  min-width: 300px;
 }
 .cover-panel.drag-over {
   background: var(--surface);
 }
 .player-panel {
-  flex: 3 1 300px;
+  flex: 0 0 290px;
 }
 .cover-stage {
   flex: 1;
@@ -484,21 +511,6 @@ input.switch:checked::after {
   font-size: 13px;
   color: var(--moss-deep);
 }
-.cover-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px 20px;
-  width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
-}
-.zoom-field {
-  flex: 1 1 200px;
-}
-.pill.lucky {
-  flex: none;
-}
 .player-stage {
   flex: 1;
   padding: 20px 8px;
@@ -507,11 +519,11 @@ input.switch:checked::after {
   align-items: center;
 }
 .record-panel {
-  flex: 1 1 100%;
+  flex: 582 1 0;
+  min-width: 360px;
 }
 .record-frame {
   width: 100%;
-  max-width: 900px;
   margin: 8px auto 0;
   border: 2px solid var(--ink);
   border-radius: 6px;
@@ -525,7 +537,7 @@ input.switch:checked::after {
 }
 .player-canvas {
   display: block;
-  width: 290px;
+  width: 250px;
   max-width: 100%;
   height: auto;
   aspect-ratio: 3 / 4;
@@ -552,10 +564,11 @@ input.switch:checked::after {
 }
 .size-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
 }
 .size-toggle {
+  padding: 1px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -569,50 +582,39 @@ input.switch:checked::after {
   font-weight: 400;
   opacity: 0.8;
 }
+/* Joined buttons where one is chosen: alignment and text position. */
+.segmented {
+  display: flex;
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.segmented button {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  border-right: 2px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.segmented button:last-child {
+  border-right: 0;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--bark);
+  color: var(--cream);
+}
+.segmented button:focus-visible {
+  outline-offset: -4px;
+}
 .style-row {
   display: flex;
   justify-content: space-between;
   gap: 6px;
-}
-.placement {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-}
-.spot-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 40px);
-  grid-auto-rows: 40px;
-  gap: 4px;
-}
-.toggle.spot {
-  min-height: 0;
-  padding: 0;
-  border-width: 1.5px;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-}
-.toggle.spot::after {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.35;
-}
-.toggle.spot[aria-pressed="true"]::after {
-  opacity: 1;
-}
-.align-buttons {
-  display: flex;
-  gap: 6px;
-}
-.align-buttons .toggle {
-  width: 44px;
-  padding: 0;
-  display: grid;
-  place-items: center;
 }
 .style-buttons {
   display: flex;
@@ -1061,8 +1063,10 @@ input.switch:checked::after {
     padding: 16px;
   }
   .cover-panel,
-  .player-panel {
+  .player-panel,
+  .record-panel {
     flex-basis: 100%;
+    min-width: 0;
   }
   .footer {
     padding: 12px 16px 24px;

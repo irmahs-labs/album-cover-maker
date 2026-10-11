@@ -22,7 +22,7 @@ import {
   TEXT_ALIGNS,
   TEXT_POSITIONS,
 } from "../lib/state";
-import type { CoverState, Photo, TextAlign } from "../lib/state";
+import type { CoverState, Photo } from "../lib/state";
 import { linkTo } from "../router";
 import {
   BLANK_BACKGROUND,
@@ -187,26 +187,75 @@ function ColorInput({
   );
 }
 
-/** Three bars, lined up the way the text is. */
-function AlignIcon({ align }: { align: TextAlign }) {
-  const x = (w: number) =>
-    align === "left" ? 3 : align === "right" ? 21 - w : 12 - w / 2;
+/** A row of joined buttons where exactly one is chosen. */
+function Segmented<T extends string>({
+  label,
+  options,
+  value,
+  disabled,
+  name,
+  onChange,
+}: {
+  label: string;
+  options: readonly T[];
+  value: T;
+  disabled?: boolean;
+  /** Accessible name for an option, when its text alone is not enough. */
+  name?: (option: T) => string;
+  onChange: (option: T) => void;
+}) {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-      {[18, 12, 15].map((w, i) => (
-        <rect
-          key={w}
-          x={x(w)}
-          y={5 + i * 6}
-          width={w}
-          height={2.6}
-          rx={1.3}
-          fill="currentColor"
-        />
+    <div role="group" aria-label={label} className="segmented">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-label={name?.(option)}
+          aria-pressed={option === value}
+          disabled={disabled}
+          onClick={() => onChange(option)}
+        >
+          {option}
+        </button>
       ))}
-    </svg>
+    </div>
   );
 }
+
+const DiceIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="4" />
+    <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+    <circle cx="15.5" cy="15.5" r="1.4" fill="currentColor" />
+  </svg>
+);
+
+const RestartIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <path d="M3 4v5h5" />
+  </svg>
+);
 
 const ROWS = ["top", "middle", "bottom"] as const;
 const COLUMNS = ["left", "center", "right"] as const;
@@ -428,10 +477,15 @@ export function Maker() {
   };
 
   const smallPhoto = photo && Math.min(photo.width, photo.height) < 3000;
+  // SAFETY: a TextPosition is always "<row>-<column>".
+  const [row, column] = state.textPosition.split("-") as [
+    (typeof ROWS)[number],
+    (typeof COLUMNS)[number],
+  ];
 
   return (
     <div className="page dotted">
-      <header className="topbar">
+      <header className="topbar maker-topbar">
         <a href="/" onClick={linkTo("/")} className="brand">
           <Logo />
           <span>
@@ -439,9 +493,25 @@ export function Maker() {
             <span className="brand-by">by Irma HS</span>
           </span>
         </a>
-        <p className="topbar-hint">
-          drop in a photo, add your title, export your cover.
-        </p>
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="pill primary"
+            onClick={() => setState((s) => feelingLucky(s, photoHues))}
+          >
+            <DiceIcon />
+            I'm feeling lucky
+          </button>
+          <button type="button" className="pill" onClick={startOver}>
+            <RestartIcon />
+            start over
+          </button>
+        </div>
+        <div className="topbar-end">
+          <p className="topbar-hint">
+            drop in a photo, add your title, export your cover.
+          </p>
+        </div>
       </header>
 
       <main className="maker">
@@ -528,29 +598,6 @@ export function Maker() {
                 ? "Drag the title to place it, or anywhere else to move your photo (arrow keys work too)."
                 : "Your photo stays in your browser. Nothing is uploaded."}
             </p>
-            <div className="cover-tools">
-              <label htmlFor="zoom" className="field zoom-field">
-                <span className="field-row">
-                  Zoom<span className="muted">{state.zoom}%</span>
-                </span>
-                <input
-                  id="zoom"
-                  type="range"
-                  min={100}
-                  max={500}
-                  value={state.zoom}
-                  disabled={!photo}
-                  onChange={(e) => set("zoom", Number(e.target.value))}
-                />
-              </label>
-              <button
-                type="button"
-                className="pill primary lucky"
-                onClick={() => setState((s) => feelingLucky(s, photoHues))}
-              >
-                I'm feeling lucky
-              </button>
-            </div>
           </fieldset>
 
           <fieldset className="panel player-panel">
@@ -560,7 +607,7 @@ export function Maker() {
                 kind="player"
                 state={state}
                 photo={photo}
-                width={290}
+                width={250}
                 fontsTick={fontsTick}
                 className="player-canvas"
                 role="img"
@@ -597,7 +644,269 @@ export function Maker() {
         >
           <div className="stack">
             <fieldset className="panel">
-              <legend>parental advisory</legend>
+              <legend>photo</legend>
+              {photo ? (
+                <div className="photo-info">
+                  <CoverCanvas
+                    kind="cover"
+                    state={{ ...state, showLabel: false, showText: false }}
+                    photo={photo}
+                    width={56}
+                    fontsTick={0}
+                    className="thumb"
+                    aria-hidden="true"
+                  />
+                  <div className="photo-meta">
+                    <div className="photo-name">{photo.name}</div>
+                    <div className="muted small">
+                      {photo.width} × {photo.height}, cropped to square
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="muted">
+                  No photo yet. JPEG, PNG and WebP all work.
+                </p>
+              )}
+              {smallPhoto && (
+                <p className="hint">
+                  This photo is under 3000 px, so the export will be scaled up
+                  and may look soft.
+                </p>
+              )}
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/*"
+                className="visually-hidden"
+                id="photo-file"
+                onChange={(e) => {
+                  openFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                className="pill wide"
+                onClick={() => fileInput.current?.click()}
+              >
+                {photo ? "replace photo" : "choose photo"}
+              </button>
+              <label htmlFor="zoom" className="field">
+                <span className="field-row">
+                  Zoom<span className="muted">{state.zoom}%</span>
+                </span>
+                <input
+                  id="zoom"
+                  type="range"
+                  min={100}
+                  max={500}
+                  value={state.zoom}
+                  disabled={!photo}
+                  onChange={(e) => set("zoom", Number(e.target.value))}
+                />
+              </label>
+            </fieldset>
+
+            <fieldset className="panel grow">
+              <legend>export</legend>
+              <button
+                type="button"
+                className="export"
+                disabled={busy !== null}
+                onClick={() => doExport("cover")}
+              >
+                {busy === "cover" ? "Saving…" : "Cover"}
+                <span>PNG · 3000 × 3000</span>
+              </button>
+              <button
+                type="button"
+                className="export"
+                disabled={busy !== null}
+                onClick={() => doExport("player")}
+              >
+                {busy === "player" ? "Saving…" : "Player"}
+                <span>PNG · 1080 × 1440</span>
+              </button>
+              <button
+                type="button"
+                className="export"
+                disabled={busy !== null}
+                onClick={() => doExport("record")}
+              >
+                {busy === "record" ? "Saving…" : "Record"}
+                <span>JPEG · 3000 × 2000</span>
+              </button>
+              <p className="hint">
+                Streaming stores ask for at least 3000 × 3000.
+              </p>
+            </fieldset>
+          </div>
+
+          <div className="stack">
+            <fieldset className="panel">
+              <legend>cover text</legend>
+              <label htmlFor="show-text" className="switch-row">
+                Show text on the cover
+                <input
+                  id="show-text"
+                  className="switch"
+                  type="checkbox"
+                  role="switch"
+                  checked={state.showText}
+                  onChange={(e) => set("showText", e.target.checked)}
+                />
+              </label>
+              <label htmlFor="main-title" className="field">
+                Main title
+                <input
+                  id="main-title"
+                  className="text"
+                  value={state.title}
+                  maxLength={80}
+                  onChange={(e) => set("title", e.target.value)}
+                />
+              </label>
+              <label htmlFor="subtitle" className="field">
+                Subtitle
+                <input
+                  id="subtitle"
+                  className="text"
+                  value={state.subtitle}
+                  maxLength={80}
+                  onChange={(e) => set("subtitle", e.target.value)}
+                />
+              </label>
+              <div className="field">
+                <span>Alignment</span>
+                <Segmented
+                  label="Text alignment"
+                  options={TEXT_ALIGNS}
+                  value={state.textAlign}
+                  disabled={!state.showText}
+                  name={(align) => `Align ${align}`}
+                  onChange={(align) => set("textAlign", align)}
+                />
+              </div>
+              <div className="field">
+                <span>Position</span>
+                <Segmented
+                  label="Vertical position"
+                  options={ROWS}
+                  value={row}
+                  disabled={!state.showText}
+                  onChange={(r) => set("textPosition", `${r}-${column}`)}
+                />
+                <Segmented
+                  label="Horizontal position"
+                  options={COLUMNS}
+                  value={column}
+                  disabled={!state.showText}
+                  onChange={(c) => set("textPosition", `${row}-${c}`)}
+                />
+              </div>
+              {state.showText && placedText(state) !== state.textPosition && (
+                <p className="hint">
+                  The label has the {spotName(state.labelCorner)} corner, so the
+                  text sits in the {spotName(placedText(state))}.
+                </p>
+              )}
+            </fieldset>
+
+            <fieldset className="panel grow">
+              <legend>player</legend>
+              <HueSlider
+                id="player-hue"
+                label="Player"
+                hue={state.playerHue}
+                color={playerColor(state.playerHue)}
+                track={hueTrack(62, 86)}
+                onChange={(h) =>
+                  setState((s) => ({ ...s, comboId: null, playerHue: h }))
+                }
+              />
+              <HueSlider
+                id="button-hue"
+                label="Buttons and text"
+                hue={state.buttonHue}
+                color={buttonColor(state.buttonHue)}
+                track={hueTrack(48, 25)}
+                onChange={(h) =>
+                  setState((s) => ({ ...s, buttonHue: h, comboId: null }))
+                }
+              />
+              <p className="hint">
+                The player's text always uses Lato. Its album picture is your
+                cover, exactly as designed.
+              </p>
+            </fieldset>
+          </div>
+
+          <div className="stack">
+            <fieldset className="panel">
+              <legend>fonts</legend>
+              <div className="field">
+                <label htmlFor="title-font">Title font</label>
+                <FontPicker
+                  id="title-font"
+                  label="Title font"
+                  fonts={TITLE_FONTS}
+                  value={state.titleFont}
+                  style={state.titleStyle}
+                  onChange={(titleFont) =>
+                    setState((s) => ({ ...s, comboId: null, titleFont }))
+                  }
+                />
+                <div className="style-row">
+                  <StyleButtons
+                    label="Title"
+                    value={state.titleStyle}
+                    onChange={(v) =>
+                      setState((s) => ({ ...s, comboId: null, titleStyle: v }))
+                    }
+                  />
+                  <ColorInput
+                    id="title-color"
+                    label="Title colour"
+                    value={state.titleColor}
+                    onChange={(v) => set("titleColor", v)}
+                  />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="subtitle-font">Subtitle font</label>
+                <FontPicker
+                  id="subtitle-font"
+                  label="Subtitle font"
+                  fonts={SUBTITLE_FONTS}
+                  value={state.subtitleFont}
+                  style={state.subtitleStyle}
+                  onChange={(subtitleFont) =>
+                    setState((s) => ({ ...s, comboId: null, subtitleFont }))
+                  }
+                />
+                <div className="style-row">
+                  <StyleButtons
+                    label="Subtitle"
+                    value={state.subtitleStyle}
+                    onChange={(v) => set("subtitleStyle", v)}
+                  />
+                  <ColorInput
+                    id="subtitle-color"
+                    label="Subtitle colour"
+                    value={state.subtitleColor}
+                    onChange={(v) => set("subtitleColor", v)}
+                  />
+                </div>
+              </div>
+              <p className="hint">
+                Title and subtitle fonts are separate sets, so the two never
+                clash.
+              </p>
+            </fieldset>
+
+            <fieldset className="panel grow">
+              <legend>label</legend>
               <label htmlFor="pa-show" className="switch-row">
                 Show the label
                 <input
@@ -633,7 +942,7 @@ export function Maker() {
                 <span className="hint">Most releases use S (10%).</span>
               </div>
               <div className="field">
-                <span>Corner</span>
+                <span>Position</span>
                 <div
                   role="group"
                   aria-label="Label corner"
@@ -654,178 +963,7 @@ export function Maker() {
                 </div>
               </div>
             </fieldset>
-
-            <fieldset className="panel grow">
-              <legend>player</legend>
-              <HueSlider
-                id="player-hue"
-                label="Player"
-                hue={state.playerHue}
-                color={playerColor(state.playerHue)}
-                track={hueTrack(62, 86)}
-                onChange={(h) =>
-                  setState((s) => ({ ...s, comboId: null, playerHue: h }))
-                }
-              />
-              <HueSlider
-                id="button-hue"
-                label="Buttons and text"
-                hue={state.buttonHue}
-                color={buttonColor(state.buttonHue)}
-                track={hueTrack(48, 25)}
-                onChange={(h) =>
-                  setState((s) => ({ ...s, buttonHue: h, comboId: null }))
-                }
-              />
-              <p className="hint">
-                The player's text always uses Lato. Its album picture is your
-                cover, exactly as designed.
-              </p>
-            </fieldset>
           </div>
-
-          <fieldset className="panel">
-            <legend>cover text</legend>
-            <label htmlFor="show-text" className="switch-row">
-              Show text on the cover
-              <input
-                id="show-text"
-                className="switch"
-                type="checkbox"
-                role="switch"
-                checked={state.showText}
-                onChange={(e) => set("showText", e.target.checked)}
-              />
-            </label>
-            <label htmlFor="main-title" className="field">
-              Main title
-              <input
-                id="main-title"
-                className="text"
-                value={state.title}
-                maxLength={80}
-                onChange={(e) => set("title", e.target.value)}
-              />
-            </label>
-            <label htmlFor="subtitle" className="field">
-              Subtitle
-              <input
-                id="subtitle"
-                className="text"
-                value={state.subtitle}
-                maxLength={80}
-                onChange={(e) => set("subtitle", e.target.value)}
-              />
-            </label>
-            <div className="placement">
-              <div className="field">
-                <span>Position</span>
-                <div
-                  role="group"
-                  aria-label="Text position"
-                  className="spot-buttons"
-                >
-                  {TEXT_POSITIONS.map((spot) => (
-                    <button
-                      key={spot}
-                      type="button"
-                      className="toggle spot"
-                      aria-label={spotName(spot)}
-                      aria-pressed={state.textPosition === spot}
-                      disabled={!state.showText}
-                      onClick={() => set("textPosition", spot)}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="field">
-                <span>Alignment</span>
-                <div
-                  role="group"
-                  aria-label="Text alignment"
-                  className="align-buttons"
-                >
-                  {TEXT_ALIGNS.map((align) => (
-                    <button
-                      key={align}
-                      type="button"
-                      className="toggle"
-                      aria-label={`Align ${align}`}
-                      aria-pressed={state.textAlign === align}
-                      disabled={!state.showText}
-                      onClick={() => set("textAlign", align)}
-                    >
-                      <AlignIcon align={align} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {state.showText && placedText(state) !== state.textPosition && (
-              <p className="hint">
-                The label has the {spotName(state.labelCorner)} corner, so the
-                text sits in the {spotName(placedText(state))}.
-              </p>
-            )}
-            <div className="field">
-              <label htmlFor="title-font">Title font</label>
-              <FontPicker
-                id="title-font"
-                label="Title font"
-                fonts={TITLE_FONTS}
-                value={state.titleFont}
-                style={state.titleStyle}
-                onChange={(titleFont) =>
-                  setState((s) => ({ ...s, comboId: null, titleFont }))
-                }
-              />
-              <div className="style-row">
-                <StyleButtons
-                  label="Title"
-                  value={state.titleStyle}
-                  onChange={(v) =>
-                    setState((s) => ({ ...s, comboId: null, titleStyle: v }))
-                  }
-                />
-                <ColorInput
-                  id="title-color"
-                  label="Title colour"
-                  value={state.titleColor}
-                  onChange={(v) => set("titleColor", v)}
-                />
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="subtitle-font">Subtitle font</label>
-              <FontPicker
-                id="subtitle-font"
-                label="Subtitle font"
-                fonts={SUBTITLE_FONTS}
-                value={state.subtitleFont}
-                style={state.subtitleStyle}
-                onChange={(subtitleFont) =>
-                  setState((s) => ({ ...s, comboId: null, subtitleFont }))
-                }
-              />
-              <div className="style-row">
-                <StyleButtons
-                  label="Subtitle"
-                  value={state.subtitleStyle}
-                  onChange={(v) => set("subtitleStyle", v)}
-                />
-                <ColorInput
-                  id="subtitle-color"
-                  label="Subtitle colour"
-                  value={state.subtitleColor}
-                  onChange={(v) => set("subtitleColor", v)}
-                />
-              </div>
-            </div>
-            <p className="hint">
-              Title and subtitle fonts are separate sets, so the two never
-              clash.
-            </p>
-          </fieldset>
 
           <fieldset className="panel combos-panel">
             <legend>combos</legend>
@@ -882,96 +1020,6 @@ export function Maker() {
               </div>
             </div>
           </fieldset>
-
-          <div className="stack">
-            <fieldset className="panel">
-              <legend>photo</legend>
-              {photo ? (
-                <div className="photo-info">
-                  <CoverCanvas
-                    kind="cover"
-                    state={{ ...state, showLabel: false, showText: false }}
-                    photo={photo}
-                    width={56}
-                    fontsTick={0}
-                    className="thumb"
-                    aria-hidden="true"
-                  />
-                  <div className="photo-meta">
-                    <div className="photo-name">{photo.name}</div>
-                    <div className="muted small">
-                      {photo.width} × {photo.height}, cropped to square
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="muted">
-                  No photo yet. JPEG, PNG and WebP all work.
-                </p>
-              )}
-              {smallPhoto && (
-                <p className="hint">
-                  This photo is under 3000 px, so the export will be scaled up
-                  and may look soft.
-                </p>
-              )}
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/*"
-                className="visually-hidden"
-                id="photo-file"
-                onChange={(e) => {
-                  openFile(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-              <button
-                type="button"
-                className="pill"
-                onClick={() => fileInput.current?.click()}
-              >
-                {photo ? "replace photo" : "choose photo"}
-              </button>
-            </fieldset>
-
-            <fieldset className="panel grow">
-              <legend>export</legend>
-              <button
-                type="button"
-                className="export"
-                disabled={busy !== null}
-                onClick={() => doExport("cover")}
-              >
-                {busy === "cover" ? "Saving…" : "Cover"}
-                <span>PNG · 3000 × 3000</span>
-              </button>
-              <button
-                type="button"
-                className="export"
-                disabled={busy !== null}
-                onClick={() => doExport("player")}
-              >
-                {busy === "player" ? "Saving…" : "Player"}
-                <span>PNG · 1080 × 1440</span>
-              </button>
-              <button
-                type="button"
-                className="export"
-                disabled={busy !== null}
-                onClick={() => doExport("record")}
-              >
-                {busy === "record" ? "Saving…" : "Record"}
-                <span>JPEG · 3000 × 2000</span>
-              </button>
-              <p className="hint">
-                Streaming stores ask for at least 3000 × 3000.
-              </p>
-              <button type="button" className="pill" onClick={startOver}>
-                start over
-              </button>
-            </fieldset>
-          </div>
         </form>
       </main>
       <footer className="footer">
