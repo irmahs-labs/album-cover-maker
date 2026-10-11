@@ -6,7 +6,7 @@ import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
 import { photoRect } from "../lib/render";
-import { CORNERS, DEFAULT_STATE, slug } from "../lib/state";
+import { CORNERS, DEFAULT_STATE, LABEL_SIZES, slug } from "../lib/state";
 import type { CoverState, Photo } from "../lib/state";
 import { linkTo } from "../router";
 import { CoverCanvas, exportPng, useFontsReady } from "./cover-canvas";
@@ -428,23 +428,29 @@ export function Maker() {
                   onChange={(e) => set("showLabel", e.target.checked)}
                 />
               </label>
-              <label htmlFor="pa-size" className="field">
+              <div className="field">
                 <span className="field-row">
-                  Label size<span className="muted">{state.labelSize}%</span>
+                  Label size
+                  <span className="muted">{state.labelSize}% of the width</span>
                 </span>
-                <input
-                  id="pa-size"
-                  type="range"
-                  min={10}
-                  max={50}
-                  value={state.labelSize}
-                  disabled={!state.showLabel}
-                  onChange={(e) => set("labelSize", Number(e.target.value))}
-                />
-                <span className="hint">
-                  Most releases keep it around 10 to 12% of the width.
-                </span>
-              </label>
+                <div role="group" aria-label="Label size" className="size-grid">
+                  {LABEL_SIZES.map(({ name, percent }) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className="toggle size-toggle"
+                      aria-label={`${name} ${percent}%`}
+                      aria-pressed={state.labelSize === percent}
+                      disabled={!state.showLabel}
+                      onClick={() => set("labelSize", percent)}
+                    >
+                      {name}
+                      <span className="size-percent">{percent}%</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="hint">Most releases use S (10%).</span>
+              </div>
               <div className="field">
                 <span>Corner</span>
                 <div
