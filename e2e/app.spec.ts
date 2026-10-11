@@ -3,16 +3,14 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-import { pngSize, testPhoto } from "./photo";
+import { jpegSize, pngSize, testPhoto } from "./photo";
 
 const addPhoto = (page: Page) =>
-  page
-    .locator("#photo-file")
-    .setInputFiles({
-      buffer: testPhoto(),
-      mimeType: "image/png",
-      name: "photo.png",
-    });
+  page.locator("#photo-file").setInputFiles({
+    buffer: testPhoto(),
+    mimeType: "image/png",
+    name: "photo.png",
+  });
 
 /** The preview's pixel at (x, y), as a fraction of the cover's size. */
 const pixel = (page: Page, x: number, y: number) =>
@@ -47,13 +45,13 @@ const labelShare = (page: Page) =>
     return plain / (data.length / 4);
   });
 
-const exportPng = async (page: Page, button: string) => {
+const exportFile = async (page: Page, button: string) => {
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.locator(".export", { hasText: button }).click(),
   ]);
   const path = await download.path();
-  return { name: download.suggestedFilename(), png: await readFile(path) };
+  return { name: download.suggestedFilename(), file: await readFile(path) };
 };
 
 test("the landing page leads to the maker, with no login", async ({ page }) => {
@@ -91,6 +89,41 @@ test("a photo shows up on the cover, with the label on top", async ({
   await expect.poll(() => labelShare(page)).toBeLessThan(0.05);
 });
 
+test("exports a 3000 × 2000 record mock-up as a JPEG", async ({ page }) => {
+  await page.goto("/make");
+  await addPhoto(page);
+  await page.locator("#main-title").fill("Sleepless Nights");
+  await page.locator("#subtitle").fill("Alexa");
+  const record = await exportFile(page, "Record");
+  expect(record.name).toBe("sleepless-nights-alexa-record-3000x2000.jpeg");
+  expect(record.file.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+  expect(jpegSize(record.file)).toEqual({ height: 2000, width: 3000 });
+});
+
+test("the record's backdrop takes the photo's main colour", async ({
+  page,
+}) => {
+  await page.goto("/make");
+  const corner = () =>
+    page
+      .locator(".record-frame canvas")
+      .evaluate((canvas: HTMLCanvasElement) =>
+        [
+          ...(canvas.getContext("2d")?.getImageData(2, 2, 1, 1).data ?? []),
+        ].slice(0, 3)
+      );
+  // Before a photo: the placeholder art's dark green.
+  await expect.poll(corner).toEqual([0x3b, 0x4a, 0x42]);
+  await addPhoto(page);
+  // After: the test photo's warm orange, not its blue disc.
+  await expect
+    .poll(async () => {
+      const [r, g, b] = await corner();
+      return r > g && g > b && r > 190;
+    })
+    .toBe(true);
+});
+
 test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({
   page,
 }) => {
@@ -99,13 +132,13 @@ test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({
   await page.locator("#main-title").fill("Sleepless Nights");
   await page.locator("#subtitle").fill("Alexa");
 
-  const cover = await exportPng(page, "Cover");
+  const cover = await exportFile(page, "Cover");
   expect(cover.name).toBe("sleepless-nights-alexa-cover-3000.png");
-  expect(pngSize(cover.png)).toEqual({ height: 3000, width: 3000 });
+  expect(pngSize(cover.file)).toEqual({ height: 3000, width: 3000 });
 
-  const player = await exportPng(page, "Player");
+  const player = await exportFile(page, "Player");
   expect(player.name).toBe("sleepless-nights-alexa-player-1080x1440.png");
-  expect(pngSize(player.png)).toEqual({ height: 1440, width: 1080 });
+  expect(pngSize(player.file)).toEqual({ height: 1440, width: 1080 });
 });
 
 test("picking a pairing loads both its fonts from the site", async ({
@@ -143,17 +176,15 @@ test("never contacts another site, photo and fonts included", async ({
   await page.getByRole("link", { exact: true, name: "start making" }).click();
   await addPhoto(page);
   for (const name of ["Grand Hotel", "DotGothic16", "Sacramento"]) {
-    const combo = page
-      .locator(".combo")
-      .filter({
-        has: page.locator(".combo-name", {
-          hasText: new RegExp(`^${name}$`, "u"),
-        }),
-      });
+    const combo = page.locator(".combo").filter({
+      has: page.locator(".combo-name", {
+        hasText: new RegExp(`^${name}$`, "u"),
+      }),
+    });
     await combo.scrollIntoViewIfNeeded();
     await combo.click();
   }
-  await exportPng(page, "Cover");
+  await exportFile(page, "Cover");
   expect([...elsewhere]).toEqual([]);
 });
 

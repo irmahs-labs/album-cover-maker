@@ -431,3 +431,103 @@ export function drawPlayer(
 }
 
 export const PLAYER_ASPECT = 4 / 3;
+
+/** The record mock-up's height for a width of 1. */
+export const RECORD_ASPECT = 2 / 3;
+
+/**
+ * The cover on a flat `background`, with the record peeking out of the
+ * sleeve to the right and the album picture on its centre label. Drawn at
+ * width `w` and height `w * RECORD_ASPECT`.
+ */
+export function drawRecord(
+  ctx: Ctx,
+  w: number,
+  state: CoverState,
+  photo: Photo | null,
+  background: string
+) {
+  const h = w * RECORD_ASPECT;
+  const side = h * 0.7;
+  const r = side * 0.48;
+  // How far the record sticks out past the sleeve's right edge.
+  const peek = side * 0.5;
+  const x = (w - side - peek) / 2;
+  const y = (h - side) / 2;
+  const cx = x + side + peek - r;
+  const cy = h / 2;
+  const circle = (radius: number) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  };
+  const shadow = (blur: number, drop: number) => {
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+    ctx.shadowBlur = h * blur;
+    ctx.shadowOffsetY = h * drop;
+  };
+
+  ctx.save();
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, w, h);
+
+  // The vinyl: black, with faint grooves, two soft glints and a rim.
+  ctx.save();
+  shadow(0.04, 0.012);
+  ctx.fillStyle = "#111211";
+  circle(r);
+  ctx.fill();
+  ctx.restore();
+  // Light catching the grooves at two opposite angles, fading either side.
+  const sheen = ctx.createConicGradient(0, cx, cy);
+  for (const [at, alpha] of [
+    [0, 0],
+    [0.04, 0.09],
+    [0.12, 0],
+    [0.5, 0],
+    [0.54, 0.09],
+    [0.62, 0],
+  ]) {
+    sheen.addColorStop(at, `rgba(255, 255, 255, ${alpha})`);
+  }
+  ctx.fillStyle = sheen;
+  circle(r);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+  ctx.lineWidth = Math.max(1, r * 0.004);
+  for (let g = 0.42; g < 0.97; g += 0.035) {
+    circle(r * g);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+  circle(r * 0.995);
+  ctx.stroke();
+
+  // The centre label shows the album picture, without the text or label.
+  const lr = r * 0.34;
+  ctx.save();
+  circle(lr);
+  ctx.clip();
+  ctx.translate(cx - lr, cy - lr);
+  drawCover(
+    ctx,
+    lr * 2,
+    { ...state, showLabel: false, showText: false },
+    photo
+  );
+  ctx.restore();
+  ctx.fillStyle = background;
+  circle(r * 0.03);
+  ctx.fill();
+
+  // The sleeve: the cover itself, on top.
+  ctx.save();
+  shadow(0.05, 0.015);
+  ctx.fillStyle = INK;
+  ctx.fillRect(x, y, side, side);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(x, y);
+  drawCover(ctx, side, state, photo);
+  ctx.restore();
+  ctx.restore();
+}

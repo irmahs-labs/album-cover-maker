@@ -424,6 +424,23 @@ input.switch:checked::after {
   justify-content: center;
   align-items: center;
 }
+.record-panel {
+  flex: 1 1 100%;
+}
+.record-frame {
+  width: 100%;
+  max-width: 900px;
+  margin: 8px auto 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.record-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+}
 .player-canvas {
   display: block;
   width: 290px;

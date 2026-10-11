@@ -214,7 +214,7 @@ describe("maker: photo", () => {
 });
 
 describe("maker: export and start over", () => {
-  it("offers both exports at their sizes", () => {
+  it("offers all three exports at their sizes", () => {
     render(<Maker />);
     expect(
       screen.getByRole("button", { name: /Cover\s*PNG · 3000 × 3000/u })
@@ -222,6 +222,17 @@ describe("maker: export and start over", () => {
     expect(
       screen.getByRole("button", { name: /Player\s*PNG · 1080 × 1440/u })
     ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Record\s*JPEG · 3000 × 2000/u })
+    ).toBeTruthy();
+  });
+
+  it("previews the record mock-up in its own window", () => {
+    render(<Maker />);
+    const preview = screen.getByRole("img", { name: /^Record mock-up/u });
+    expect(
+      preview.closest("fieldset")?.querySelector("legend")?.textContent
+    ).toBe("record.jpeg");
   });
 
   it("keeps everything when you cancel start over", async () => {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { playerColor } from "./color";
 import { fakeContext } from "./fake-canvas";
 import { PLAIN } from "./fonts";
-import { drawCover, drawPlayer, photoRect } from "./render";
+import { drawCover, drawPlayer, drawRecord, photoRect } from "./render";
 import { DEFAULT_STATE } from "./state";
 import type { Corner, CoverState, Photo } from "./state";
 
@@ -286,5 +286,64 @@ describe("drawPlayer", () => {
     const [w, h] = (labelCall(fake)?.args.slice(3) ?? []) as number[];
     expect(w).toBeCloseTo(24.4);
     expect(h).toBeCloseTo(15.25);
+  });
+});
+
+describe("drawRecord", () => {
+  // 900 × 600: the sleeve is 420 square, the record 201.6 across the middle.
+  const record = (withPhoto: Photo | null = photo) => {
+    const fake = fakeContext();
+    drawRecord(fake.ctx, 900, state(), withPhoto, "#7AACAC");
+    return fake;
+  };
+
+  it("fills the backdrop with the colour it is given", () => {
+    const first = record().named("fillRect")[0];
+    expect(first.args).toEqual([0, 0, 900, 600]);
+    expect(first.fillStyle).toBe("#7AACAC");
+  });
+
+  it("centres the sleeve and the record peeking out of it", () => {
+    const fake = record();
+    // Sleeve 420 + 210 of record showing = 630, centred in 900.
+    expect(fake.named("translate").at(-1)?.args).toEqual([135, 90]);
+    const disc = fake.named("arc")[0].args;
+    // Its right edge is 210 past the sleeve's (555), at the middle height.
+    expect(Number(disc[0]) + Number(disc[2])).toBeCloseTo(765);
+    expect(disc[1]).toBe(300);
+  });
+
+  it("puts the photo on the record's label and the full cover on the sleeve", () => {
+    const fake = record();
+    const photos = fake
+      .named("drawImage")
+      .filter((c) => c.args[0] === photo.image);
+    expect(photos).toHaveLength(2);
+    // The label is a third of the record's radius: 2 × 0.34 × 201.6 across.
+    const labelSide = 2 * 0.34 * 201.6;
+    const onLabel = photoRect(photo, labelSide, 100, 0, 0);
+    expect(photos[0].args.slice(3)).toEqual([onLabel.w, onLabel.h]);
+    expect(photos[1].args.slice(3)).toEqual([840, 420]);
+  });
+
+  it("keeps the title and advisory label off the record's label", () => {
+    const fake = record();
+    // Each is drawn once, on the sleeve.
+    expect(
+      fake
+        .texts()
+        .map((t) => t.text)
+        .sort()
+    ).toEqual(["ALEXA", "Night"]);
+    const labels = fake.named("drawImage").filter((c) => c.args[0] === label);
+    expect(labels).toHaveLength(1);
+  });
+
+  it("shows the placeholder art when there is no photo", () => {
+    const fake = record(null);
+    expect(
+      fake.named("drawImage").filter((c) => c.args[0] === photo.image)
+    ).toHaveLength(0);
+    expect(fake.named("fillRect")[0].fillStyle).toBe("#7AACAC");
   });
 });

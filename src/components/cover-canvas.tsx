@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { loadAdvisory } from "../lib/advisory";
 import { cssFont, loadFonts } from "../lib/fonts";
-import { drawCover, drawPlayer, PLAYER_ASPECT } from "../lib/render";
+import {
+  drawCover,
+  drawPlayer,
+  drawRecord,
+  PLAYER_ASPECT,
+  RECORD_ASPECT,
+} from "../lib/render";
 import type { CoverState, Photo } from "../lib/state";
 
 /** Bumps whenever the fonts the state uses and the advisory label finish loading, so canvases redraw. */
@@ -31,12 +37,42 @@ interface Props extends Omit<
   React.CanvasHTMLAttributes<HTMLCanvasElement>,
   "width" | "height"
 > {
-  kind: "cover" | "player";
+  kind: Kind;
   state: CoverState;
   photo: Photo | null;
   /** Width in CSS pixels the canvas is rendered for. */
   width: number;
   fontsTick: number;
+  /** The record mock-up's backdrop: the photo's main colour. */
+  background?: string;
+}
+
+export type Kind = "cover" | "player" | "record";
+
+const ASPECT: Record<Kind, number> = {
+  cover: 1,
+  player: PLAYER_ASPECT,
+  record: RECORD_ASPECT,
+};
+
+/** Placeholder art's main colour, used before there is a photo. */
+export const BLANK_BACKGROUND = "#3B4A42";
+
+function draw(
+  ctx: CanvasRenderingContext2D,
+  kind: Kind,
+  width: number,
+  state: CoverState,
+  photo: Photo | null,
+  background: string
+) {
+  if (kind === "cover") {
+    drawCover(ctx, width, state, photo);
+  } else if (kind === "player") {
+    drawPlayer(ctx, width, state, photo);
+  } else {
+    drawRecord(ctx, width, state, photo, background);
+  }
 }
 
 export function CoverCanvas({
@@ -45,10 +81,11 @@ export function CoverCanvas({
   photo,
   width,
   fontsTick,
+  background = BLANK_BACKGROUND,
   ...rest
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const height = kind === "cover" ? width : width * PLAYER_ASPECT;
+  const height = width * ASPECT[kind];
 
   useEffect(() => {
     const canvas = ref.current;
@@ -61,41 +98,42 @@ export function CoverCanvas({
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (kind === "cover") {
-      drawCover(ctx, canvas.width, state, photo);
-    } else {
-      drawPlayer(ctx, canvas.width, state, photo);
-    }
-  }, [kind, state, photo, width, height, fontsTick]);
+    draw(ctx, kind, canvas.width, state, photo, background);
+  }, [kind, state, photo, width, height, fontsTick, background]);
 
   return <canvas ref={ref} {...rest} />;
 }
 
-/** Renders the cover or player at full export size and downloads it as a PNG. */
-export async function exportPng(
-  kind: "cover" | "player",
+/** What each export is: its width (the height follows) and file type. */
+export const EXPORTS: Record<Kind, { width: number; type: string }> = {
+  cover: { type: "image/png", width: 3000 },
+  player: { type: "image/png", width: 1080 },
+  record: { type: "image/jpeg", width: 3000 },
+};
+
+/** Renders the cover, player or record at full export size and downloads it. */
+export async function exportImage(
+  kind: Kind,
   state: CoverState,
   photo: Photo | null,
+  background: string,
   filename: string
 ) {
+  const { width, type } = EXPORTS[kind];
   const canvas = document.createElement("canvas");
-  canvas.width = kind === "cover" ? 3000 : 1080;
-  canvas.height = kind === "cover" ? 3000 : 1440;
+  canvas.width = width;
+  canvas.height = Math.round(width * ASPECT[kind]);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Canvas is not available in this browser.");
   }
   await loadAdvisory();
-  if (kind === "cover") {
-    drawCover(ctx, 3000, state, photo);
-  } else {
-    drawPlayer(ctx, 1080, state, photo);
-  }
+  draw(ctx, kind, width, state, photo, background);
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/png")
+    canvas.toBlob(resolve, type, 0.92)
   );
   if (!blob) {
-    throw new Error("Could not create the PNG.");
+    throw new Error("Could not create the image.");
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

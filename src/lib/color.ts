@@ -123,3 +123,33 @@ export function dominantHues(
   }
   return hues.length ? hues : [fallback];
 }
+
+/**
+ * The image's most common colour, as #RRGGBB: pixels are grouped into
+ * 512 coarse colour boxes, and the average of the fullest box wins.
+ * Falls back to `fallback` for an image with no opaque pixels.
+ */
+export function dominantColor(
+  data: ArrayLike<number>,
+  fallback = "#3B4A42"
+): string {
+  const count = new Array<number>(512).fill(0);
+  const sums = Array.from({ length: 512 }, () => [0, 0, 0]);
+  for (let i = 0; i + 3 < data.length; i += 4) {
+    if (data[i + 3] < 128) {
+      continue;
+    }
+    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+    const box = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
+    count[box] += 1;
+    sums[box][0] += r;
+    sums[box][1] += g;
+    sums[box][2] += b;
+  }
+  const top = count.indexOf(Math.max(...count));
+  if (count[top] === 0) {
+    return fallback;
+  }
+  const [r, g, b] = sums[top].map((s) => Math.round(s / count[top]));
+  return rgbToHex([r, g, b]);
+}
