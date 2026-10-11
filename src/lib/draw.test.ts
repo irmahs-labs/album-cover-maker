@@ -81,7 +81,7 @@ describe("drawCover: parental advisory label", () => {
     }
   );
 
-  it("scales with the size slider and keeps its 1.6 : 1 shape", () => {
+  it("scales with the label size and keeps its 1.6 : 1 shape", () => {
     const call = labelCall(drawn({ labelSize: 20 }));
     expect(call?.args.slice(3)).toEqual([200, 125]);
   });

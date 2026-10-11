@@ -9,6 +9,16 @@ export const CORNERS: Corner[] = [
   "bottom-right",
 ];
 
+/** The advisory label's sizes, as a % of the cover's width. */
+export const LABEL_SIZES = [
+  { name: "XS", percent: 8 },
+  { name: "S", percent: 10 },
+  { name: "M", percent: 12 },
+  { name: "L", percent: 14 },
+  { name: "XL", percent: 16 },
+  { name: "XXL", percent: 20 },
+] as const;
+
 export interface Photo {
   image: CanvasImageSource;
   width: number;

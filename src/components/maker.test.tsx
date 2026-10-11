@@ -115,13 +115,14 @@ describe("maker: combos", () => {
 describe("maker: parental advisory", () => {
   it("disables the size and corner controls when the label is off", async () => {
     render(<Maker />);
-    const corners = within(
-      screen.getByRole("group", { name: "Label corner" })
-    ).getAllByRole("button");
-    expect(input("pa-size").disabled).toBe(false);
+    const buttons = (group: string) =>
+      within(screen.getByRole("group", { name: group })).getAllByRole(
+        "button"
+      ) as HTMLButtonElement[];
+    expect(buttons("Label size").some((b) => b.disabled)).toBe(false);
     await userEvent.click(input("pa-show"));
-    expect(input("pa-size").disabled).toBe(true);
-    expect(corners.every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
+    expect(buttons("Label size").every((b) => b.disabled)).toBe(true);
+    expect(buttons("Label corner").every((b) => b.disabled)).toBe(true);
   });
 
   it("moves the label to the corner you pick", async () => {
@@ -138,19 +139,41 @@ describe("maker: parental advisory", () => {
     ).toBe(false);
   });
 
-  it("shows the label size as a percentage", () => {
+  const sizeButtons = () =>
+    within(screen.getByRole("group", { name: "Label size" })).getAllByRole(
+      "button"
+    );
+
+  it("offers six sizes, XS to XXL, each with its percentage", () => {
     render(<Maker />);
-    fireEvent.change(input("pa-size"), { target: { value: "16" } });
-    expect(screen.getByText("16%")).toBeTruthy();
+    expect(sizeButtons().map((b) => b.textContent)).toEqual([
+      "XS8%",
+      "S10%",
+      "M12%",
+      "L14%",
+      "XL16%",
+      "XXL20%",
+    ]);
   });
 
-  it("lets the label size go from 10% to 50%, starting at 10%", () => {
+  it("starts on S, 10% of the width", () => {
     render(<Maker />);
-    expect(input("pa-size").min).toBe("10");
-    expect(input("pa-size").max).toBe("50");
-    expect(input("pa-size").value).toBe("10");
-    fireEvent.change(input("pa-size"), { target: { value: "50" } });
-    expect(screen.getByText("50%")).toBeTruthy();
+    const pressedSizes = sizeButtons().filter(pressed);
+    expect(pressedSizes.map((b) => b.textContent)).toEqual(["S10%"]);
+    expect(screen.getByText("10% of the width")).toBeTruthy();
+  });
+
+  it("switches to the size you pick, one at a time", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XXL 20%" }));
+    expect(
+      sizeButtons()
+        .filter(pressed)
+        .map((b) => b.textContent)
+    ).toEqual(["XXL20%"]);
+    expect(screen.getByText("20% of the width")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "XS 8%" }));
+    expect(screen.getByText("8% of the width")).toBeTruthy();
   });
 });
 
