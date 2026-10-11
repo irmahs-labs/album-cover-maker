@@ -1,6 +1,54 @@
 import { describe, expect, it } from "vitest";
 
 import { COMBOS, suggestCombos } from "./combos";
+import {
+  PAIRS,
+  SUBTITLE_FONTS,
+  TITLE_FONTS,
+  fontsStylesheetUrl,
+} from "./fonts";
+import { DEFAULT_STATE } from "./state";
+
+describe("COMBOS", () => {
+  it("has one combo per pairing, with unique ids", () => {
+    expect(COMBOS).toHaveLength(PAIRS.length);
+    expect(new Set(COMBOS.map((c) => c.id)).size).toBe(PAIRS.length);
+  });
+
+  it("puts every pairing's fonts in the menus", () => {
+    for (const c of COMBOS) {
+      expect(TITLE_FONTS).toContain(c.titleFont);
+      expect(SUBTITLE_FONTS).toContain(c.subtitleFont);
+    }
+  });
+
+  it("uses the bold for a family paired with itself", () => {
+    for (const family of ["Quicksand", "Archivo Narrow"]) {
+      const combo = COMBOS.find((c) => c.titleFont === family);
+      expect(combo?.titleStyle.bold).toBe(true);
+      expect(combo?.name).toBe(`${family} Bold`);
+    }
+  });
+
+  it("keeps the other pairings in their regular weight", () => {
+    const plain = COMBOS.filter((c) => !c.titleStyle.bold);
+    expect(plain).toHaveLength(COMBOS.length - 2);
+  });
+
+  it("starts on a combo that exists", () => {
+    expect(COMBOS.map((c) => c.id)).toContain(DEFAULT_STATE.comboId);
+    expect(COMBOS[0]).toMatchObject({
+      subtitleFont: DEFAULT_STATE.subtitleFont,
+      titleFont: DEFAULT_STATE.titleFont,
+    });
+  });
+
+  it("asks Google Fonts for every family once", () => {
+    const url = fontsStylesheetUrl();
+    expect(url.match(/family=Lato:/gu)).toHaveLength(1);
+    expect(url).toContain("family=Stint+Ultra+Expanded:");
+  });
+});
 
 describe("suggestCombos", () => {
   it("offers every combo once", () => {
@@ -17,6 +65,12 @@ describe("suggestCombos", () => {
     const a = suggestCombos([10, 120, 250], 0).map((s) => s.combo.id);
     const b = suggestCombos([10, 120, 250], 1).map((s) => s.combo.id);
     expect(a).not.toEqual(b);
+  });
+
+  it("shuffles to the same order for the same round", () => {
+    const a = suggestCombos([10], 4).map((s) => s.combo.id);
+    const b = suggestCombos([10], 4).map((s) => s.combo.id);
+    expect(a).toEqual(b);
   });
 
   it("keeps hues inside 0-359", () => {
