@@ -435,14 +435,14 @@ export function Maker() {
                 <input
                   id="pa-size"
                   type="range"
-                  min={8}
-                  max={20}
+                  min={10}
+                  max={50}
                   value={state.labelSize}
                   disabled={!state.showLabel}
                   onChange={(e) => set("labelSize", Number(e.target.value))}
                 />
                 <span className="hint">
-                  Most releases sit at 8 to 12% of the width.
+                  Most releases keep it around 10 to 12% of the width.
                 </span>
               </label>
               <div className="field">

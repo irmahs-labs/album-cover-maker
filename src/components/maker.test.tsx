@@ -143,6 +143,15 @@ describe("maker: parental advisory", () => {
     fireEvent.change(input("pa-size"), { target: { value: "16" } });
     expect(screen.getByText("16%")).toBeTruthy();
   });
+
+  it("lets the label size go from 10% to 50%, starting at 10%", () => {
+    render(<Maker />);
+    expect(input("pa-size").min).toBe("10");
+    expect(input("pa-size").max).toBe("50");
+    expect(input("pa-size").value).toBe("10");
+    fireEvent.change(input("pa-size"), { target: { value: "50" } });
+    expect(screen.getByText("50%")).toBeTruthy();
+  });
 });
 
 describe("maker: photo", () => {
