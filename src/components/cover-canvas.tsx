@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 
+import { loadAdvisory } from "../lib/advisory";
 import { cssFont, loadFonts } from "../lib/fonts";
 import { drawCover, drawPlayer, PLAYER_ASPECT } from "../lib/render";
 import type { CoverState, Photo } from "../lib/state";
 
-/** Bumps whenever the fonts the state uses finish loading, so canvases redraw. */
+/** Bumps whenever the fonts the state uses and the advisory label finish loading, so canvases redraw. */
 export function useFontsReady(state: CoverState): number {
   const [tick, setTick] = useState(0);
   const { titleFont, subtitleFont, titleStyle, subtitleStyle } = state;
   useEffect(() => {
     let live = true;
-    loadFonts([
-      cssFont(titleFont, titleStyle, 40),
-      cssFont(subtitleFont, subtitleStyle, 40),
-      `700 40px "Lato"`,
-      `400 40px "Lato"`,
-      `700 40px "Work Sans"`,
+    Promise.all([
+      loadFonts([
+        cssFont(titleFont, titleStyle, 40),
+        cssFont(subtitleFont, subtitleStyle, 40),
+        `700 40px "Lato"`,
+        `400 40px "Lato"`,
+      ]),
+      loadAdvisory(),
     ]).then(() => live && setTick((t) => t + 1));
     return () => {
       live = false;
@@ -82,6 +85,7 @@ export async function exportPng(
   if (!ctx) {
     throw new Error("Canvas is not available in this browser.");
   }
+  await loadAdvisory();
   if (kind === "cover") {
     drawCover(ctx, 3000, state, photo);
   } else {

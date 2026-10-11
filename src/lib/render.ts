@@ -1,3 +1,4 @@
+import { ADVISORY_ASPECT, advisoryImage } from "./advisory";
 import { buttonColor, playerColor } from "./color";
 import { cssFont } from "./fonts";
 import type { TextStyle } from "./fonts";
@@ -126,37 +127,6 @@ function drawPlaceholder(ctx: Ctx, size: number) {
   ctx.fillRect(0, size * 0.97, size, size * 0.03);
 }
 
-/** A parental-advisory style label: black frame, white middle band. */
-function drawAdvisoryLabel(ctx: Ctx, x: number, y: number, w: number) {
-  const h = w * 0.6;
-  const band = h * 0.24;
-  const border = w * 0.035;
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(x + border, y + band, w - border * 2, h - band * 2);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const fit = (text: string, px: number, maxW: number) => {
-    ctx.font = `700 ${px}px "Work Sans", "Arial Narrow", Arial, sans-serif`;
-    const m = ctx.measureText(text).width;
-    if (m > maxW) {
-      ctx.font = `700 ${(px * maxW) / m}px "Work Sans", "Arial Narrow", Arial, sans-serif`;
-    }
-  };
-  ctx.fillStyle = "#ffffff";
-  fit("PARENTAL", band * 0.72, w * 0.8);
-  ctx.fillText("PARENTAL", x + w / 2, y + band / 2 + band * 0.04);
-  ctx.fillStyle = "#000000";
-  fit("ADVISORY", (h - band * 2) * 0.82, w * 0.86);
-  ctx.fillText("ADVISORY", x + w / 2, y + h / 2 + band * 0.04);
-  ctx.fillStyle = "#ffffff";
-  fit("EXPLICIT CONTENT", band * 0.6, w * 0.84);
-  ctx.fillText("EXPLICIT CONTENT", x + w / 2, y + h - band / 2 + band * 0.04);
-  ctx.textAlign = "start";
-  ctx.textBaseline = "alphabetic";
-}
-
 /** Draws text left-aligned at (x, baseline) with tracking and optional underline/strike. */
 function drawStyledText(
   ctx: Ctx,
@@ -203,13 +173,15 @@ export function drawCover(
     drawPlaceholder(ctx, size);
   }
 
-  if (state.showLabel) {
+  // The label is skipped for the moment it takes to load; exports wait for it.
+  const label = advisoryImage();
+  if (state.showLabel && label) {
     const w = (size * state.labelSize) / 100;
-    const h = w * 0.6;
+    const h = w / ADVISORY_ASPECT;
     const m = size * 0.035;
     const x = state.labelCorner.endsWith("left") ? m : size - m - w;
     const y = state.labelCorner.startsWith("top") ? m : size - m - h;
-    drawAdvisoryLabel(ctx, x, y, w);
+    ctx.drawImage(label, x, y, w, h);
   }
 
   if (state.showText && (state.title.trim() || state.subtitle.trim())) {
@@ -218,7 +190,7 @@ export function drawCover(
     let bottom = size * 0.95;
     // Keep the text clear of a label sitting in a bottom corner.
     if (state.showLabel && state.labelCorner.startsWith("bottom")) {
-      bottom -= ((size * state.labelSize) / 100) * 0.6 + size * 0.02;
+      bottom -= (size * state.labelSize) / 100 / ADVISORY_ASPECT + size * 0.02;
     }
     ctx.fillStyle = CREAM;
     ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
