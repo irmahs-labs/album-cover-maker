@@ -492,6 +492,51 @@ describe("maker: photo filters", () => {
   });
 });
 
+describe("maker: player colours", () => {
+  const hue = (id: string) => Number(input(id).value);
+  const slide = (id: string, value: number) =>
+    fireEvent.change(input(id), { target: { value: String(value) } });
+  const lock = () => screen.getByRole("button", { name: /locked/u });
+
+  it("starts locked, so both sliders turn together", () => {
+    render(<Maker />);
+    expect(pressed(lock())).toBe(true);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([40, 35]);
+    slide("player-hue", 100);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([100, 95]);
+    slide("button-hue", 5);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([10, 5]);
+  });
+
+  it("wraps the other slider around the colour wheel", () => {
+    render(<Maker />);
+    slide("button-hue", 355);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([0, 355]);
+    slide("player-hue", 350);
+    expect(hue("button-hue")).toBe(345);
+  });
+
+  it("moves each slider on its own once unlocked", async () => {
+    render(<Maker />);
+    await userEvent.click(lock());
+    expect(lock().textContent).toBe("unlocked");
+    expect(pressed(lock())).toBe(false);
+    slide("player-hue", 200);
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([200, 35]);
+    expect(
+      screen.getByText(/Unlocked, each slider moves on its own/u)
+    ).toBeTruthy();
+  });
+
+  it("undoes a locked drag as one step", async () => {
+    render(<Maker />);
+    slide("player-hue", 60);
+    slide("player-hue", 80);
+    await userEvent.click(screen.getByRole("button", { name: "undo" }));
+    expect([hue("player-hue"), hue("button-hue")]).toEqual([40, 35]);
+  });
+});
+
 describe("maker: undo and redo", () => {
   const undoButton = () => screen.getByRole("button", { name: "undo" });
   const redoButton = () => screen.getByRole("button", { name: "redo" });

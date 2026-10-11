@@ -279,6 +279,25 @@ const comboSettings = (sug: Suggestion) => ({
   titleStyle: sug.combo.titleStyle,
 });
 
+const wrapHue = (h: number) => ((Math.round(h) % 360) + 360) % 360;
+
+const LockIcon = ({ open }: { open: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d={open ? "M8 11V7a4 4 0 0 1 7.5-2" : "M8 11V8a4 4 0 0 1 8 0v3"} />
+  </svg>
+);
+
 const RestartIcon = () => (
   <svg
     width="16"
@@ -365,6 +384,16 @@ export function Maker() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Kind | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // While locked, the player and button sliders turn together.
+  const [huesLocked, setHuesLocked] = useState(true);
+  const setHue = (which: "playerHue" | "buttonHue", hue: number) =>
+    setState((s) => {
+      const other = which === "playerHue" ? "buttonHue" : "playerHue";
+      const turned = huesLocked
+        ? { [other]: wrapHue(s[other] + hue - s[which]) }
+        : {};
+      return { ...s, ...turned, comboId: null, [which]: hue };
+    }, "hues");
   const fileInput = useRef<HTMLInputElement>(null);
   const fontsTick = useFontsReady(state);
   const [coverBox, coverWidth] = useElementWidth<HTMLDivElement>(500);
@@ -999,29 +1028,33 @@ export function Maker() {
                 hue={state.playerHue}
                 color={playerColor(state.playerHue)}
                 track={hueTrack(62, 86)}
-                onChange={(h) =>
-                  setState(
-                    (s) => ({ ...s, comboId: null, playerHue: h }),
-                    "playerHue"
-                  )
-                }
+                onChange={(h) => setHue("playerHue", h)}
               />
+              <div className="hue-lock">
+                <button
+                  type="button"
+                  className="pill small"
+                  aria-pressed={huesLocked}
+                  title="Move both sliders together"
+                  onClick={() => setHuesLocked((l) => !l)}
+                >
+                  <LockIcon open={!huesLocked} />
+                  {huesLocked ? "locked" : "unlocked"}
+                </button>
+              </div>
               <HueSlider
                 id="button-hue"
                 label="Buttons and text"
                 hue={state.buttonHue}
                 color={buttonColor(state.buttonHue)}
                 track={hueTrack(48, 25)}
-                onChange={(h) =>
-                  setState(
-                    (s) => ({ ...s, buttonHue: h, comboId: null }),
-                    "buttonHue"
-                  )
-                }
+                onChange={(h) => setHue("buttonHue", h)}
               />
               <p className="hint">
-                The player's text always uses Lato. Its album picture is your
-                cover, exactly as designed.
+                {huesLocked
+                  ? "Locked, both sliders move together and keep the same contrast."
+                  : "Unlocked, each slider moves on its own."}{" "}
+                The player's text always uses Lato.
               </p>
             </fieldset>
           </div>

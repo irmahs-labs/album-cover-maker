@@ -407,6 +407,26 @@ input.switch:checked::after {
   background: var(--surface);
 }
 
+/* The lock between the two player sliders, on a dashed line. */
+.hue-lock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hue-lock::before,
+.hue-lock::after {
+  content: "";
+  flex: 1;
+  border-top: 1.5px dashed var(--moss);
+}
+.hue-lock .pill {
+  align-self: center;
+  min-height: 36px;
+}
+.hue-lock .pill[aria-pressed="true"] {
+  background: var(--bark);
+  color: var(--cream);
+}
 .swatch-value {
   display: flex;
   align-items: center;
