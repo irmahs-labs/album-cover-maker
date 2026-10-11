@@ -447,6 +447,81 @@ describe("maker: photo", () => {
   });
 });
 
+describe("maker: undo and redo", () => {
+  const undoButton = () => screen.getByRole("button", { name: "undo" });
+  const redoButton = () => screen.getByRole("button", { name: "redo" });
+  const sizePressed = () =>
+    within(screen.getByRole("group", { name: "Label size" }))
+      .getAllByRole("button")
+      .filter(pressed)
+      .map((b) => b.getAttribute("aria-label"));
+
+  it("has nothing to undo or redo at the start", () => {
+    render(<Maker />);
+    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
+    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("takes back a change and puts it back", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XXL 20%" }));
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["S 10%"]);
+    await userEvent.click(redoButton());
+    expect(sizePressed()).toEqual(["XXL 20%"]);
+    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("undoes a whole word typed at once in one step", async () => {
+    render(<Maker />);
+    await userEvent.clear(input("main-title"));
+    await userEvent.type(input("main-title"), "Sleepless");
+    await userEvent.click(undoButton());
+    expect(input("main-title").value).toBe(DEFAULT_STATE.title);
+  });
+
+  it("undoes each lucky roll on its own", async () => {
+    render(<Maker />);
+    const lucky = screen.getByRole("button", { name: "I'm feeling lucky" });
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    await userEvent.click(lucky);
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+    await userEvent.click(lucky);
+    expect(sizePressed()).toEqual(["XXL 20%"]);
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["XS 8%"]);
+    await userEvent.click(undoButton());
+    expect(sizePressed()).toEqual(["S 10%"]);
+  });
+
+  it("answers Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y outside text fields", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(sizePressed()).toEqual(["S 10%"]);
+    await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+    await userEvent.keyboard("{Control>}z{/Control}{Control>}y{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+  });
+
+  it("leaves Ctrl+Z inside a text field to the field", async () => {
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.click(input("main-title"));
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(sizePressed()).toEqual(["XL 16%"]);
+  });
+
+  it("starts the history afresh on start over", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<Maker />);
+    await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
+    await userEvent.click(screen.getByRole("button", { name: "start over" }));
+    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
 describe("maker: export and start over", () => {
   it("offers all three exports at their sizes", () => {
     render(<Maker />);

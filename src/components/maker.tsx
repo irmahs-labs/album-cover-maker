@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 
 import {
   buttonColor,
@@ -10,6 +17,8 @@ import { COMBOS, suggestCombos } from "../lib/combos";
 import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
+import { historyReducer, startHistory } from "../lib/history";
+import type { History, HistoryAction } from "../lib/history";
 import { feelingLucky } from "../lib/lucky";
 import { photoRect } from "../lib/render";
 import type { Box } from "../lib/render";
@@ -240,6 +249,34 @@ const DiceIcon = () => (
   </svg>
 );
 
+const UndoIcon = ({ redo = false }: { redo?: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={redo ? { transform: "scaleX(-1)" } : undefined}
+  >
+    <path d="M9 14L4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </svg>
+);
+
+/** The settings a combo sets: both fonts, the title's weight and the player colours. */
+const comboSettings = (sug: Suggestion) => ({
+  buttonHue: sug.buttonHue,
+  comboId: sug.combo.id,
+  playerHue: sug.playerHue,
+  subtitleFont: sug.combo.subtitleFont,
+  titleFont: sug.combo.titleFont,
+  titleStyle: sug.combo.titleStyle,
+});
+
 const RestartIcon = () => (
   <svg
     width="16"
@@ -268,8 +305,58 @@ const spotName = (spot: string) => spot.replace("-", " ");
 const hueTrack = (s: number, l: number) =>
   `linear-gradient(90deg, ${[0, 60, 120, 180, 240, 300, 360].map((h) => `hsl(${h} ${s}% ${l}%)`).join(", ")})`;
 
+const coverHistory = (
+  history: History<CoverState>,
+  action: HistoryAction<CoverState>
+) => historyReducer(history, action);
+
+/** Whether a key press belongs to a text field's own editing, undo included. */
+const inTextField = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement &&
+      ["text", "search", "url", "email"].includes(target.type)));
+
 export function Maker() {
-  const [state, setState] = useState<CoverState>(DEFAULT_STATE);
+  const [history, dispatch] = useReducer(
+    coverHistory,
+    DEFAULT_STATE,
+    startHistory
+  );
+  const state = history.present;
+  /**
+   * Changes the settings. Changes with the same `group` in quick
+   * succession (a word typed, a slider dragged) undo as one step.
+   */
+  const setState = useCallback(
+    (update: (s: CoverState) => CoverState, group?: string) =>
+      dispatch({ group, now: Date.now(), type: "set", update }),
+    []
+  );
+  const undo = useCallback(() => dispatch({ type: "undo" }), []);
+  const redo = useCallback(() => dispatch({ type: "redo" }), []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || inTextField(e.target)) {
+        return;
+      }
+      if (key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      } else if (key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [photoHues, setPhotoHues] = useState<number[]>([40]);
   const [photoColor, setPhotoColor] = useState(BLANK_BACKGROUND);
@@ -283,23 +370,16 @@ export function Maker() {
 
   const set = useCallback(
     <K extends keyof CoverState>(key: K, value: CoverState[K]) =>
-      setState((s) => ({ ...s, [key]: value })),
-    []
+      setState((s) => ({ ...s, [key]: value }), key),
+    [setState]
   );
 
   const suggestions = useMemo(() => suggestCombos(photoHues), [photoHues]);
 
-  const applyCombo = useCallback((sug: Suggestion) => {
-    setState((s) => ({
-      ...s,
-      buttonHue: sug.buttonHue,
-      comboId: sug.combo.id,
-      playerHue: sug.playerHue,
-      subtitleFont: sug.combo.subtitleFont,
-      titleFont: sug.combo.titleFont,
-      titleStyle: sug.combo.titleStyle,
-    }));
-  }, []);
+  const applyCombo = useCallback(
+    (sug: Suggestion) => setState((s) => ({ ...s, ...comboSettings(sug) })),
+    [setState]
+  );
 
   const openFile = useCallback(
     async (file: File | undefined) => {
@@ -321,17 +401,25 @@ export function Maker() {
         setPhotoHues(hues);
         setPhotoColor(color);
         setError(null);
-        setState((s) => ({ ...s, panX: 0, panY: 0, zoom: 100 }));
-        // Re-apply the chosen combo with the new photo's colours.
-        const current =
-          suggestCombos(hues).find((x) => x.combo.id === state.comboId) ??
-          suggestCombos(hues)[0];
-        applyCombo(current);
+        // Re-frame the photo and re-apply the chosen combo with its colours,
+        // as one step.
+        setState((s) => {
+          const current =
+            suggestCombos(hues).find((x) => x.combo.id === s.comboId) ??
+            suggestCombos(hues)[0];
+          return {
+            ...s,
+            ...comboSettings(current),
+            panX: 0,
+            panY: 0,
+            zoom: 100,
+          };
+        });
       } catch (error) {
         setError((error as Error).message);
       }
     },
-    [applyCombo, state.comboId]
+    [setState]
   );
 
   // Drag the title to one of nine spots, or anywhere else to move the photo
@@ -402,19 +490,23 @@ export function Maker() {
     }
     if (d.kind === "text") {
       const spot = spotAt(pointAt(e));
-      setState((s) =>
-        s.textPosition === spot ? s : { ...s, textPosition: spot }
+      setState(
+        (s) => (s.textPosition === spot ? s : { ...s, textPosition: spot }),
+        "textPosition"
       );
       return;
     }
     const sx = spare("x");
     const sy = spare("y");
     const clamp = (v: number) => Math.max(-1, Math.min(1, v));
-    setState((s) => ({
-      ...s,
-      panX: sx > 0 ? clamp(d.panX + (e.clientX - d.x) / sx) : 0,
-      panY: sy > 0 ? clamp(d.panY + (e.clientY - d.y) / sy) : 0,
-    }));
+    setState(
+      (s) => ({
+        ...s,
+        panX: sx > 0 ? clamp(d.panX + (e.clientX - d.x) / sx) : 0,
+        panY: sy > 0 ? clamp(d.panY + (e.clientY - d.y) / sy) : 0,
+      }),
+      "pan"
+    );
   };
   const onPointerUp = () => {
     drag.current = null;
@@ -434,11 +526,14 @@ export function Maker() {
     }
     e.preventDefault();
     const clamp = (v: number) => Math.max(-1, Math.min(1, v));
-    setState((s) => ({
-      ...s,
-      panX: clamp(s.panX + m[0]),
-      panY: clamp(s.panY + m[1]),
-    }));
+    setState(
+      (s) => ({
+        ...s,
+        panX: clamp(s.panX + m[0]),
+        panY: clamp(s.panY + m[1]),
+      }),
+      "pan"
+    );
   };
 
   const doExport = async (kind: Kind) => {
@@ -473,7 +568,7 @@ export function Maker() {
     setPhotoHues([40]);
     setPhotoColor(BLANK_BACKGROUND);
     setError(null);
-    setState(DEFAULT_STATE);
+    dispatch({ type: "reset", value: DEFAULT_STATE });
   };
 
   const smallPhoto = photo && Math.min(photo.width, photo.height) < 3000;
@@ -511,6 +606,28 @@ export function Maker() {
           <p className="topbar-hint">
             drop in a photo, add your title, export your cover.
           </p>
+          <div role="group" aria-label="History" className="history">
+            <button
+              type="button"
+              className="pill small"
+              title="Undo (Ctrl+Z or ⌘Z)"
+              disabled={history.past.length === 0}
+              onClick={undo}
+            >
+              <UndoIcon />
+              undo
+            </button>
+            <button
+              type="button"
+              className="pill small"
+              title="Redo (Ctrl+Shift+Z or ⇧⌘Z)"
+              disabled={history.future.length === 0}
+              onClick={redo}
+            >
+              <UndoIcon redo />
+              redo
+            </button>
+          </div>
         </div>
       </header>
 
@@ -822,7 +939,10 @@ export function Maker() {
                 color={playerColor(state.playerHue)}
                 track={hueTrack(62, 86)}
                 onChange={(h) =>
-                  setState((s) => ({ ...s, comboId: null, playerHue: h }))
+                  setState(
+                    (s) => ({ ...s, comboId: null, playerHue: h }),
+                    "playerHue"
+                  )
                 }
               />
               <HueSlider
@@ -832,7 +952,10 @@ export function Maker() {
                 color={buttonColor(state.buttonHue)}
                 track={hueTrack(48, 25)}
                 onChange={(h) =>
-                  setState((s) => ({ ...s, buttonHue: h, comboId: null }))
+                  setState(
+                    (s) => ({ ...s, buttonHue: h, comboId: null }),
+                    "buttonHue"
+                  )
                 }
               />
               <p className="hint">
