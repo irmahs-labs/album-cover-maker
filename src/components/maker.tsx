@@ -31,6 +31,7 @@ import {
   useFontsReady,
 } from "./cover-canvas";
 import type { Kind } from "./cover-canvas";
+import { FontPicker } from "./font-picker";
 import { Logo } from "./logo";
 
 function useElementWidth<T extends HTMLElement>(fallback: number) {
@@ -768,23 +769,16 @@ export function Maker() {
             )}
             <div className="field">
               <label htmlFor="title-font">Title font</label>
-              <select
+              <FontPicker
                 id="title-font"
-                className="select"
-                style={{ font: cssFont(state.titleFont, state.titleStyle, 19) }}
+                label="Title font"
+                fonts={TITLE_FONTS}
                 value={state.titleFont}
-                onChange={(e) =>
-                  setState((s) => ({
-                    ...s,
-                    comboId: null,
-                    titleFont: e.target.value as CoverState["titleFont"],
-                  }))
+                style={state.titleStyle}
+                onChange={(titleFont) =>
+                  setState((s) => ({ ...s, comboId: null, titleFont }))
                 }
-              >
-                {TITLE_FONTS.map((f) => (
-                  <option key={f}>{f}</option>
-                ))}
-              </select>
+              />
               <div className="style-row">
                 <StyleButtons
                   label="Title"
@@ -803,25 +797,16 @@ export function Maker() {
             </div>
             <div className="field">
               <label htmlFor="subtitle-font">Subtitle font</label>
-              <select
+              <FontPicker
                 id="subtitle-font"
-                className="select"
-                style={{
-                  font: cssFont(state.subtitleFont, state.subtitleStyle, 15),
-                }}
+                label="Subtitle font"
+                fonts={SUBTITLE_FONTS}
                 value={state.subtitleFont}
-                onChange={(e) =>
-                  setState((s) => ({
-                    ...s,
-                    comboId: null,
-                    subtitleFont: e.target.value as CoverState["subtitleFont"],
-                  }))
+                style={state.subtitleStyle}
+                onChange={(subtitleFont) =>
+                  setState((s) => ({ ...s, comboId: null, subtitleFont }))
                 }
-              >
-                {SUBTITLE_FONTS.map((f) => (
-                  <option key={f}>{f}</option>
-                ))}
-              </select>
+              />
               <div className="style-row">
                 <StyleButtons
                   label="Subtitle"

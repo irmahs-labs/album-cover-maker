@@ -103,9 +103,18 @@ const FALLBACK: Partial<Record<string, string>> = {
   "Young Serif": "serif",
 };
 
+/** The family, weight and style as separate CSS properties, for an element's style. */
+export function fontStyle(family: string, style: TextStyle = PLAIN) {
+  return {
+    fontFamily: `"${family}", ${FALLBACK[family] ?? "sans-serif"}`,
+    fontStyle: style.italic ? "italic" : "normal",
+    fontWeight: style.bold ? 700 : (BASE_WEIGHT[family] ?? 400),
+  };
+}
+
 export function cssFont(family: string, style: TextStyle, px: number): string {
-  const weight = style.bold ? 700 : (BASE_WEIGHT[family] ?? 400);
-  return `${style.italic ? "italic " : ""}${weight} ${px}px "${family}", ${FALLBACK[family] ?? "sans-serif"}`;
+  const f = fontStyle(family, style);
+  return `${style.italic ? "italic " : ""}${f.fontWeight} ${px}px ${f.fontFamily}`;
 }
 
 /**
