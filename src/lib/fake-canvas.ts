@@ -29,6 +29,9 @@ export const fakeContext = () => {
       if (key in target) {
         return target[key];
       }
+      if (key.startsWith("create") && key.endsWith("Gradient")) {
+        return () => ({ addColorStop() {} });
+      }
       return (...args: unknown[]) => {
         calls.push({
           args,

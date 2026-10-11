@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { buttonColor, dominantHues, playerColor } from "../lib/color";
+import {
+  buttonColor,
+  dominantColor,
+  dominantHues,
+  playerColor,
+} from "../lib/color";
 import { COMBOS, suggestCombos } from "../lib/combos";
 import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
@@ -19,7 +24,13 @@ import {
 } from "../lib/state";
 import type { CoverState, Photo, TextAlign } from "../lib/state";
 import { linkTo } from "../router";
-import { CoverCanvas, exportPng, useFontsReady } from "./cover-canvas";
+import {
+  BLANK_BACKGROUND,
+  CoverCanvas,
+  exportImage,
+  useFontsReady,
+} from "./cover-canvas";
+import type { Kind } from "./cover-canvas";
 import { Logo } from "./logo";
 
 function useElementWidth<T extends HTMLElement>(fallback: number) {
@@ -41,7 +52,7 @@ function useElementWidth<T extends HTMLElement>(fallback: number) {
 
 async function loadPhoto(
   file: File
-): Promise<{ photo: Photo; hues: number[] }> {
+): Promise<{ photo: Photo; hues: number[]; color: string }> {
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();
@@ -51,11 +62,15 @@ async function loadPhoto(
     sample.width = sample.height = 48;
     const ctx = sample.getContext("2d", { willReadFrequently: true });
     let hues = [40];
+    let color = BLANK_BACKGROUND;
     if (ctx) {
       ctx.drawImage(img, 0, 0, 48, 48);
-      hues = dominantHues(ctx.getImageData(0, 0, 48, 48).data, 3);
+      const { data } = ctx.getImageData(0, 0, 48, 48);
+      hues = dominantHues(data, 3);
+      color = dominantColor(data, BLANK_BACKGROUND);
     }
     return {
+      color,
       hues,
       photo: {
         height: img.naturalHeight,
@@ -207,12 +222,14 @@ export function Maker() {
   const [state, setState] = useState<CoverState>(DEFAULT_STATE);
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [photoHues, setPhotoHues] = useState<number[]>([40]);
+  const [photoColor, setPhotoColor] = useState(BLANK_BACKGROUND);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"cover" | "player" | null>(null);
+  const [busy, setBusy] = useState<Kind | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const fontsTick = useFontsReady(state);
   const [coverBox, coverWidth] = useElementWidth<HTMLDivElement>(500);
+  const [recordBox, recordWidth] = useElementWidth<HTMLDivElement>(720);
 
   const set = useCallback(
     <K extends keyof CoverState>(key: K, value: CoverState[K]) =>
@@ -244,7 +261,7 @@ export function Maker() {
         return;
       }
       try {
-        const { photo: next, hues } = await loadPhoto(file);
+        const { photo: next, hues, color } = await loadPhoto(file);
         setPhoto((prev) => {
           if (prev?.image instanceof HTMLImageElement) {
             URL.revokeObjectURL(prev.image.src);
@@ -252,6 +269,7 @@ export function Maker() {
           return next;
         });
         setPhotoHues(hues);
+        setPhotoColor(color);
         setError(null);
         setState((s) => ({ ...s, panX: 0, panY: 0, zoom: 100 }));
         // Re-apply the chosen combo with the new photo's colours.
@@ -373,18 +391,16 @@ export function Maker() {
     }));
   };
 
-  const doExport = async (kind: "cover" | "player") => {
+  const doExport = async (kind: Kind) => {
     setBusy(kind);
     try {
       const name = slug(`${state.title} ${state.subtitle}`);
-      await exportPng(
-        kind,
-        state,
-        photo,
-        kind === "cover"
-          ? `${name}-cover-3000.png`
-          : `${name}-player-1080x1440.png`
-      );
+      const file = {
+        cover: "cover-3000.png",
+        player: "player-1080x1440.png",
+        record: "record-3000x2000.jpeg",
+      }[kind];
+      await exportImage(kind, state, photo, photoColor, `${name}-${file}`);
     } catch (error) {
       setError((error as Error).message);
     } finally {
@@ -405,6 +421,7 @@ export function Maker() {
       return null;
     });
     setPhotoHues([40]);
+    setPhotoColor(BLANK_BACKGROUND);
     setError(null);
     setState(DEFAULT_STATE);
   };
@@ -549,6 +566,26 @@ export function Maker() {
                 aria-label="Music player preview using your cover"
               />
             </div>
+          </fieldset>
+
+          <fieldset className="panel record-panel">
+            <legend>record.jpeg</legend>
+            <div ref={recordBox} className="record-frame">
+              <CoverCanvas
+                kind="record"
+                state={state}
+                photo={photo}
+                width={recordWidth}
+                fontsTick={fontsTick}
+                background={photoColor}
+                role="img"
+                aria-label="Record mock-up: your cover with the record peeking out"
+              />
+            </div>
+            <p className="hint center">
+              The backdrop is your photo's main colour, and the record's label
+              shows the picture.
+            </p>
           </fieldset>
         </section>
 
@@ -932,6 +969,15 @@ export function Maker() {
               >
                 {busy === "player" ? "Saving…" : "Player"}
                 <span>PNG · 1080 × 1440</span>
+              </button>
+              <button
+                type="button"
+                className="export"
+                disabled={busy !== null}
+                onClick={() => doExport("record")}
+              >
+                {busy === "record" ? "Saving…" : "Record"}
+                <span>JPEG · 3000 × 2000</span>
               </button>
               <p className="hint">
                 Streaming stores ask for at least 3000 × 3000.

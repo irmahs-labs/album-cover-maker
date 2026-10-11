@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buttonColor,
+  dominantColor,
   dominantHues,
   hslToHex,
   isDark,
@@ -57,6 +58,32 @@ describe("dominantHues", () => {
 
   it("falls back for a grey image", () => {
     expect(dominantHues(pixels([30, 30, 30, 10]), 3, 77)).toEqual([77]);
+  });
+});
+
+describe("dominantColor", () => {
+  const pixels = (...runs: [number, [number, number, number, number]][]) =>
+    runs.flatMap(([n, rgba]) => Array.from({ length: n }, () => rgba).flat());
+
+  it("picks the colour most of the image is, averaged", () => {
+    const data = pixels(
+      [60, [120, 170, 170, 255]],
+      [40, [124, 174, 174, 255]],
+      [70, [230, 120, 40, 255]]
+    );
+    // The two teals share a box and outnumber the orange: 60 × 120 and
+    // 40 × 124 average to 122 (7A), and 170 and 174 to 172 (AC).
+    expect(dominantColor(data)).toBe("#7AACAC");
+  });
+
+  it("ignores see-through pixels", () => {
+    const data = pixels([90, [0, 0, 0, 0]], [10, [230, 120, 40, 255]]);
+    expect(dominantColor(data)).toBe("#E67828");
+  });
+
+  it("falls back when nothing is opaque", () => {
+    expect(dominantColor(pixels([4, [9, 9, 9, 0]]))).toBe("#3B4A42");
+    expect(dominantColor([], "#123456")).toBe("#123456");
   });
 });
 
