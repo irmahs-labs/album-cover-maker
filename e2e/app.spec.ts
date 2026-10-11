@@ -114,6 +114,31 @@ test("I'm feeling lucky redraws the cover with its new picks", async ({
   await expect.poll(() => labelShare(page)).toBeLessThan(0.05);
 });
 
+test("dragging the title snaps it to one of nine spots", async ({ page }) => {
+  await page.goto("/make");
+  const box = await page.locator(".cover-frame canvas").boundingBox();
+  if (!box) {
+    throw new Error("no cover preview");
+  }
+  const at = (fx: number, fy: number) =>
+    [box.x + box.width * fx, box.y + box.height * fy] as const;
+  const spot = (name: string) =>
+    page
+      .getByRole("group", { name: "Text position" })
+      .getByRole("button", { name });
+
+  // The default title sits bottom left; grab it there.
+  await page.mouse.move(...at(0.2, 0.86));
+  await page.mouse.down();
+  await page.mouse.move(...at(0.5, 0.5), { steps: 4 });
+  await expect(page.locator(".spot-grid")).toBeVisible();
+  await expect(spot("middle center")).toHaveAttribute("aria-pressed", "true");
+  await page.mouse.move(...at(0.85, 0.15), { steps: 4 });
+  await page.mouse.up();
+  await expect(spot("top right")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".spot-grid")).toHaveCount(0);
+});
+
 test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({
   page,
 }) => {

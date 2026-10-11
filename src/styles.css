@@ -395,6 +395,26 @@ input.switch:checked::after {
 .cover-frame canvas.draggable:active {
   cursor: grabbing;
 }
+.cover-frame canvas.text-draggable {
+  cursor: move;
+}
+/* The nine text spots, shown while the title is being dragged. */
+.spot-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+.spot-grid span {
+  border: 1.5px dashed rgb(255 243 207 / 0.7);
+  margin: -0.75px;
+}
+.spot-grid span.active {
+  background: rgb(221 232 126 / 0.28);
+  border-style: solid;
+}
 .drop-hint {
   position: absolute;
   left: 50%;
@@ -489,6 +509,46 @@ input.switch:checked::after {
   display: flex;
   justify-content: space-between;
   gap: 6px;
+}
+.placement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.spot-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-auto-rows: 40px;
+  gap: 4px;
+}
+.toggle.spot {
+  min-height: 0;
+  padding: 0;
+  border-width: 1.5px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+.toggle.spot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+}
+.toggle.spot[aria-pressed="true"]::after {
+  opacity: 1;
+}
+.align-buttons {
+  display: flex;
+  gap: 6px;
+}
+.align-buttons .toggle {
+  width: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
 .style-buttons {
   display: flex;

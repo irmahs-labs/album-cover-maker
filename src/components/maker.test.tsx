@@ -64,6 +64,79 @@ describe("maker: cover text", () => {
   });
 });
 
+describe("maker: text placement", () => {
+  const group = (name: string) =>
+    within(screen.getByRole("group", { name })).getAllByRole(
+      "button"
+    ) as HTMLButtonElement[];
+  const spot = (name: string) =>
+    within(screen.getByRole("group", { name: "Text position" })).getByRole(
+      "button",
+      { name }
+    );
+  const pressedNames = (name: string) =>
+    group(name)
+      .filter(pressed)
+      .map((b) => b.getAttribute("aria-label"));
+
+  it("offers nine spots, starting bottom left", () => {
+    render(<Maker />);
+    expect(
+      group("Text position").map((b) => b.getAttribute("aria-label"))
+    ).toEqual([
+      "top left",
+      "top center",
+      "top right",
+      "middle left",
+      "middle center",
+      "middle right",
+      "bottom left",
+      "bottom center",
+      "bottom right",
+    ]);
+    expect(pressedNames("Text position")).toEqual(["bottom left"]);
+  });
+
+  it("moves the text to the spot you pick", async () => {
+    render(<Maker />);
+    await userEvent.click(spot("top right"));
+    expect(pressedNames("Text position")).toEqual(["top right"]);
+  });
+
+  it("aligns left, center or right, starting left", async () => {
+    render(<Maker />);
+    expect(pressedNames("Text alignment")).toEqual(["Align left"]);
+    await userEvent.click(screen.getByRole("button", { name: "Align center" }));
+    expect(pressedNames("Text alignment")).toEqual(["Align center"]);
+  });
+
+  it("explains that the label keeps its corner and the text moves to the middle", async () => {
+    render(<Maker />);
+    const note =
+      "The label has the top left corner, so the text sits in the middle left.";
+    expect(screen.queryByText(note)).toBeNull();
+    await userEvent.click(spot("top left"));
+    expect(screen.getByText(note)).toBeTruthy();
+    await userEvent.click(input("pa-show"));
+    expect(screen.queryByText(note)).toBeNull();
+  });
+
+  it("disables position and alignment when the cover has no text", async () => {
+    render(<Maker />);
+    await userEvent.click(input("show-text"));
+    expect(group("Text position").every((b) => b.disabled)).toBe(true);
+    expect(group("Text alignment").every((b) => b.disabled)).toBe(true);
+  });
+
+  it("always shows the title in the player, with no switch for it", () => {
+    render(<Maker />);
+    const switches = screen
+      .getAllByRole("switch")
+      .map((el) => el.closest("label")?.textContent?.trim());
+    expect(switches).toEqual(["Show the label", "Show text on the cover"]);
+  });
+});
+
 describe("maker: combos", () => {
   it("lists every pairing", () => {
     render(<Maker />);

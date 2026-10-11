@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadAdvisory } from "../lib/advisory";
 import { cssFont, loadFonts } from "../lib/fonts";
 import { drawCover, drawPlayer, PLAYER_ASPECT } from "../lib/render";
+import type { Box } from "../lib/render";
 import type { CoverState, Photo } from "../lib/state";
 
 /** Bumps whenever the fonts the state uses and the advisory label finish loading, so canvases redraw. */
@@ -37,6 +38,8 @@ interface Props extends Omit<
   /** Width in CSS pixels the canvas is rendered for. */
   width: number;
   fontsTick: number;
+  /** For the cover: where the text landed, as fractions of the cover's side. */
+  onTextBox?: (box: Box | null) => void;
 }
 
 export function CoverCanvas({
@@ -45,6 +48,7 @@ export function CoverCanvas({
   photo,
   width,
   fontsTick,
+  onTextBox,
   ...rest
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -62,11 +66,20 @@ export function CoverCanvas({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (kind === "cover") {
-      drawCover(ctx, canvas.width, state, photo);
+      const box = drawCover(ctx, canvas.width, state, photo);
+      const side = canvas.width;
+      onTextBox?.(
+        box && {
+          h: box.h / side,
+          w: box.w / side,
+          x: box.x / side,
+          y: box.y / side,
+        }
+      );
     } else {
       drawPlayer(ctx, canvas.width, state, photo);
     }
-  }, [kind, state, photo, width, height, fontsTick]);
+  }, [kind, state, photo, width, height, fontsTick, onTextBox]);
 
   return <canvas ref={ref} {...rest} />;
 }
