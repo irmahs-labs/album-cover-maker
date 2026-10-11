@@ -200,7 +200,7 @@ test("picking a pairing loads both its fonts from the site", async ({
     .filter({ has: page.locator(".combo-name", { hasText: /^Cinzel$/u }) });
   await combo.scrollIntoViewIfNeeded();
   await combo.click();
-  await expect(page.locator("#title-font")).toHaveValue("Cinzel");
+  await expect(page.locator("#title-font")).toHaveText("Cinzel");
   await expect
     .poll(() =>
       page.evaluate(
@@ -210,6 +210,34 @@ test("picking a pairing loads both its fonts from the site", async ({
       )
     )
     .toBe(true);
+});
+
+test("each font in the menu is written in its own font", async ({ page }) => {
+  await page.goto("/make");
+  await page.getByRole("button", { exact: true, name: "Title font" }).click();
+  const list = page.getByRole("listbox", { exact: true, name: "Title font" });
+  await expect(list).toBeVisible();
+  for (const name of [
+    "Abril Fatface",
+    "Fugaz One",
+    "Space Mono",
+    "Grand Hotel",
+  ]) {
+    const option = list.getByRole("option", { exact: true, name });
+    const family = await option.evaluate(
+      (el) => getComputedStyle(el).fontFamily
+    );
+    expect(family.startsWith(`"${name}"`)).toBe(true);
+    // ...and the font itself has loaded, so it isn't the fallback showing.
+    await expect
+      .poll(() =>
+        page.evaluate((n) => document.fonts.check(`16px "${n}"`), name)
+      )
+      .toBe(true);
+  }
+  await list.getByRole("option", { name: "Grand Hotel" }).click();
+  await expect(page.locator("#title-font")).toHaveText("Grand Hotel");
+  await expect(list).toBeHidden();
 });
 
 test("never contacts another site, photo and fonts included", async ({

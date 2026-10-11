@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { COMBOS } from "../lib/combos";
+import { SUBTITLE_FONTS, TITLE_FONTS } from "../lib/fonts";
 import { textColors } from "../lib/lucky";
 import { DEFAULT_STATE } from "../lib/state";
 import { setUpDom } from "./dom-test-setup";
@@ -13,8 +14,13 @@ setUpDom();
 
 const input = (id: string) =>
   document.querySelector<HTMLInputElement>(`#${id}`)!;
-const select = (id: string) =>
-  document.querySelector<HTMLSelectElement>(`#${id}`)!;
+/** The font a menu shows as chosen. */
+const fontOf = (id: string) =>
+  document.querySelector<HTMLButtonElement>(`#${id}`)!.textContent;
+const pickFont = async (id: string, name: string) => {
+  await userEvent.click(document.querySelector<HTMLButtonElement>(`#${id}`)!);
+  await userEvent.click(screen.getByRole("option", { name }));
+};
 const preview = () =>
   screen.getByRole("img", { name: /^Album cover preview/u });
 const comboList = () => screen.getByRole("list", { name: "Suggested combos" });
@@ -29,8 +35,8 @@ describe("maker: cover text", () => {
     render(<Maker />);
     expect(input("main-title").value).toBe(DEFAULT_STATE.title);
     expect(input("subtitle").value).toBe(DEFAULT_STATE.subtitle);
-    expect(select("title-font").value).toBe(COMBOS[0].titleFont);
-    expect(select("subtitle-font").value).toBe(COMBOS[0].subtitleFont);
+    expect(fontOf("title-font")).toBe(COMBOS[0].titleFont);
+    expect(fontOf("subtitle-font")).toBe(COMBOS[0].subtitleFont);
     expect(pressed(comboButton(COMBOS[0].name))).toBe(true);
   });
 
@@ -137,6 +143,92 @@ describe("maker: text placement", () => {
   });
 });
 
+describe("maker: font menus", () => {
+  const titleButton = () => screen.getByRole("button", { name: "Title font" });
+  const options = () => screen.getAllByRole("option");
+  const activeOption = () => {
+    const list = screen.getByRole("listbox");
+    return document.querySelector(
+      `#${list.getAttribute("aria-activedescendant")}`
+    )?.textContent;
+  };
+
+  it("writes every font in the list in its own font", async () => {
+    render(<Maker />);
+    await userEvent.click(titleButton());
+    expect(screen.getByRole("listbox", { name: "Title font" })).toBeTruthy();
+    expect(options().map((o) => o.textContent)).toEqual(TITLE_FONTS);
+    for (const option of options()) {
+      expect(option.style.fontFamily).toMatch(
+        new RegExp(`^"${option.textContent}",`, "u")
+      );
+    }
+  });
+
+  it("does the same for the subtitle fonts", async () => {
+    render(<Maker />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Subtitle font" })
+    );
+    expect(options().map((o) => o.textContent)).toEqual(SUBTITLE_FONTS);
+    const families = new Set(options().map((o) => o.style.fontFamily));
+    expect(families.size).toBe(SUBTITLE_FONTS.length);
+  });
+
+  it("shows the chosen font on its button, with its treatment", async () => {
+    render(<Maker />);
+    expect(titleButton().style.fontFamily).toMatch(/^"Abril Fatface",/u);
+    expect(titleButton().style.fontWeight).toBe("400");
+    await userEvent.click(screen.getByRole("button", { name: "Title bold" }));
+    expect(titleButton().style.fontWeight).toBe("700");
+  });
+
+  it("marks the chosen font, and picking one closes the list", async () => {
+    render(<Maker />);
+    await userEvent.click(titleButton());
+    const chosen = options().filter(
+      (o) => o.getAttribute("aria-selected") === "true"
+    );
+    expect(chosen.map((o) => o.textContent)).toEqual(["Abril Fatface"]);
+    await userEvent.click(screen.getByRole("option", { name: "Cinzel" }));
+    expect(fontOf("title-font")).toBe("Cinzel");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(titleButton().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("works from the keyboard", async () => {
+    render(<Maker />);
+    titleButton().focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(activeOption()).toBe("Abril Fatface");
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+    expect(fontOf("title-font")).toBe(TITLE_FONTS[2]);
+    expect(document.activeElement).toBe(titleButton());
+    // Escape closes without changing anything.
+    await userEvent.keyboard("{ArrowDown}{End}{Escape}");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(fontOf("title-font")).toBe(TITLE_FONTS[2]);
+  });
+
+  it("jumps to a font as you type its name", async () => {
+    render(<Maker />);
+    titleButton().focus();
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("ci");
+    expect(activeOption()).toBe("Cinzel");
+    await userEvent.keyboard("{Enter}");
+    expect(fontOf("title-font")).toBe("Cinzel");
+  });
+
+  it("closes when you click somewhere else", async () => {
+    render(<Maker />);
+    await userEvent.click(titleButton());
+    await userEvent.click(input("main-title"));
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(fontOf("title-font")).toBe("Abril Fatface");
+  });
+});
+
 describe("maker: combos", () => {
   it("lists every pairing", () => {
     render(<Maker />);
@@ -148,8 +240,8 @@ describe("maker: combos", () => {
   it("sets both fonts when you pick a pairing", async () => {
     render(<Maker />);
     await userEvent.click(comboButton("Cinzel"));
-    expect(select("title-font").value).toBe("Cinzel");
-    expect(select("subtitle-font").value).toBe("Fauna One");
+    expect(fontOf("title-font")).toBe("Cinzel");
+    expect(fontOf("subtitle-font")).toBe("Fauna One");
     expect(pressed(comboButton("Cinzel"))).toBe(true);
     expect(pressed(comboButton(COMBOS[0].name))).toBe(false);
   });
@@ -164,7 +256,7 @@ describe("maker: combos", () => {
 
   it("drops the pairing highlight once you pick a font by hand", async () => {
     render(<Maker />);
-    await userEvent.selectOptions(select("title-font"), "Ultra");
+    await pickFont("title-font", "Ultra");
     const highlighted = within(comboList())
       .getAllByRole("button")
       .filter(pressed);
@@ -194,8 +286,8 @@ describe("maker: I'm feeling lucky", () => {
     const last = COMBOS.at(-1);
     expect(pressedIn("Label size")).toEqual(["XXL 20%"]);
     expect(pressedIn("Label corner")).toEqual(["bottom right"]);
-    expect(select("title-font").value).toBe(last?.titleFont);
-    expect(select("subtitle-font").value).toBe(last?.subtitleFont);
+    expect(fontOf("title-font")).toBe(last?.titleFont);
+    expect(fontOf("subtitle-font")).toBe(last?.subtitleFont);
     expect(input("title-color").value).toBe(textColors([40]).at(-1));
     expect(input("subtitle-color").value).toBe(textColors([40]).at(-1));
     expect(pressedIn("Subtitle font style")).toEqual([]);
@@ -389,6 +481,6 @@ describe("maker: export and start over", () => {
     await userEvent.click(comboButton("Cinzel"));
     await userEvent.click(screen.getByRole("button", { name: "start over" }));
     expect(input("main-title").value).toBe(DEFAULT_STATE.title);
-    expect(select("title-font").value).toBe(DEFAULT_STATE.titleFont);
+    expect(fontOf("title-font")).toBe(DEFAULT_STATE.titleFont);
   });
 });
