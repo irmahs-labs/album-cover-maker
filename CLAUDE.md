@@ -23,9 +23,10 @@ Always name the branch after the feature or fix it contains, never a random or g
 ## Checks before pushing
 
 ```sh
-npm run lint    # typecheck
-npm test        # vitest
+npm run lint      # typecheck, app and end-to-end tests
+npm test          # vitest
 npm run build
+npm run test:e2e  # Playwright, when a change touches what the browser shows
 ```
 
 `npm run check` runs Ultracite (oxlint + oxfmt) and is report-only; the PostToolUse hook in `.claude/hooks/ultracite.sh` runs it on every file you edit.
