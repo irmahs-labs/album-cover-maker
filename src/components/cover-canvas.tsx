@@ -9,6 +9,7 @@ import {
   PLAYER_ASPECT,
   RECORD_ASPECT,
 } from "../lib/render";
+import type { Box } from "../lib/render";
 import type { CoverState, Photo } from "../lib/state";
 
 /** Bumps whenever the fonts the state uses and the advisory label finish loading, so canvases redraw. */
@@ -43,6 +44,8 @@ interface Props extends Omit<
   /** Width in CSS pixels the canvas is rendered for. */
   width: number;
   fontsTick: number;
+  /** For the cover: where the text landed, as fractions of the cover's side. */
+  onTextBox?: (box: Box | null) => void;
   /** The record mock-up's backdrop: the photo's main colour. */
   background?: string;
 }
@@ -58,6 +61,7 @@ const ASPECT: Record<Kind, number> = {
 /** Placeholder art's main colour, used before there is a photo. */
 export const BLANK_BACKGROUND = "#3B4A42";
 
+/** Draws one of the three; for the cover, returns where its text landed. */
 function draw(
   ctx: CanvasRenderingContext2D,
   kind: Kind,
@@ -65,14 +69,16 @@ function draw(
   state: CoverState,
   photo: Photo | null,
   background: string
-) {
+): Box | null {
   if (kind === "cover") {
-    drawCover(ctx, width, state, photo);
-  } else if (kind === "player") {
+    return drawCover(ctx, width, state, photo);
+  }
+  if (kind === "player") {
     drawPlayer(ctx, width, state, photo);
   } else {
     drawRecord(ctx, width, state, photo, background);
   }
+  return null;
 }
 
 export function CoverCanvas({
@@ -81,6 +87,7 @@ export function CoverCanvas({
   photo,
   width,
   fontsTick,
+  onTextBox,
   background = BLANK_BACKGROUND,
   ...rest
 }: Props) {
@@ -98,8 +105,19 @@ export function CoverCanvas({
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    draw(ctx, kind, canvas.width, state, photo, background);
-  }, [kind, state, photo, width, height, fontsTick, background]);
+    const box = draw(ctx, kind, canvas.width, state, photo, background);
+    if (kind === "cover") {
+      const side = canvas.width;
+      onTextBox?.(
+        box && {
+          h: box.h / side,
+          w: box.w / side,
+          x: box.x / side,
+          y: box.y / side,
+        }
+      );
+    }
+  }, [kind, state, photo, width, height, fontsTick, onTextBox, background]);
 
   return <canvas ref={ref} {...rest} />;
 }

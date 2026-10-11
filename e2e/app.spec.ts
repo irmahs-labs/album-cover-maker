@@ -51,7 +51,7 @@ const exportFile = async (page: Page, button: string) => {
     page.locator(".export", { hasText: button }).click(),
   ]);
   const path = await download.path();
-  return { name: download.suggestedFilename(), file: await readFile(path) };
+  return { file: await readFile(path), name: download.suggestedFilename() };
 };
 
 test("the landing page leads to the maker, with no login", async ({ page }) => {
@@ -122,6 +122,31 @@ test("the record's backdrop takes the photo's main colour", async ({
       return r > g && g > b && r > 190;
     })
     .toBe(true);
+});
+
+test("dragging the title snaps it to one of nine spots", async ({ page }) => {
+  await page.goto("/make");
+  const box = await page.locator(".cover-frame canvas").boundingBox();
+  if (!box) {
+    throw new Error("no cover preview");
+  }
+  const at = (fx: number, fy: number) =>
+    [box.x + box.width * fx, box.y + box.height * fy] as const;
+  const spot = (name: string) =>
+    page
+      .getByRole("group", { name: "Text position" })
+      .getByRole("button", { name });
+
+  // The default title sits bottom left; grab it there.
+  await page.mouse.move(...at(0.2, 0.86));
+  await page.mouse.down();
+  await page.mouse.move(...at(0.5, 0.5), { steps: 4 });
+  await expect(page.locator(".spot-grid")).toBeVisible();
+  await expect(spot("middle center")).toHaveAttribute("aria-pressed", "true");
+  await page.mouse.move(...at(0.85, 0.15), { steps: 4 });
+  await page.mouse.up();
+  await expect(spot("top right")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".spot-grid")).toHaveCount(0);
 });
 
 test("exports a 3000 × 3000 cover and a 1080 × 1440 player", async ({

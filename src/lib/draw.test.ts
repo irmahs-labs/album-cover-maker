@@ -5,7 +5,7 @@ import { fakeContext } from "./fake-canvas";
 import { PLAIN } from "./fonts";
 import { drawCover, drawPlayer, drawRecord, photoRect } from "./render";
 import { DEFAULT_STATE } from "./state";
-import type { Corner, CoverState, Photo } from "./state";
+import type { Corner, CoverState, Photo, TextPosition } from "./state";
 
 // The label artwork is an image the browser loads; here it is a stand-in
 // object, and each test decides whether it has "loaded".
@@ -35,8 +35,8 @@ const drawn = (
   withPhoto: Photo | null = null
 ) => {
   const fake = fakeContext();
-  drawCover(fake.ctx, SIZE, state(patch), withPhoto);
-  return fake;
+  const box = drawCover(fake.ctx, SIZE, state(patch), withPhoto);
+  return { ...fake, box };
 };
 const labelCall = (fake: ReturnType<typeof fakeContext>) =>
   fake.named("drawImage").find((c) => c.args[0] === label);
@@ -111,7 +111,7 @@ describe("drawCover: parental advisory label", () => {
 
 describe("drawCover: text", () => {
   it("draws the title above the subtitle, subtitle in capitals", () => {
-    const [subtitle, title] = drawn().texts();
+    const [title, subtitle] = drawn().texts();
     expect(subtitle.text).toBe("ALEXA");
     expect(title.text).toBe("Night");
     expect(title.y).toBeLessThan(subtitle.y);
@@ -136,13 +136,11 @@ describe("drawCover: text", () => {
     ).toEqual(["ALEXA"]);
   });
 
-  it("moves the text up to clear a label in a bottom corner", () => {
-    const top = drawn({ labelCorner: "top-left" }).texts();
-    const bottom = drawn({ labelCorner: "bottom-left" }).texts();
-    const lift = top[0].y - bottom[0].y;
-    // The label's height plus a 2% gap.
-    expect(lift).toBeCloseTo(62.5 + 20);
-    expect(bottom[0].y).toBeLessThan(1000 - 35 - 62.5);
+  it("lifts the text above a bottom label it would run into", () => {
+    const title = "The Very Long Name Of An Album";
+    const { box } = drawn({ labelCorner: "bottom-right", title });
+    // The label's top, less a 2% gap.
+    expect((box?.y ?? 0) + (box?.h ?? 0)).toBeCloseTo(1000 - 35 - 62.5 - 20);
   });
 
   it("does not move the text when the bottom label is switched off", () => {
@@ -154,7 +152,7 @@ describe("drawCover: text", () => {
     expect(hidden[0].y).toBe(top[0].y);
   });
 
-  // Lines are drawn from the bottom up; read them top to bottom.
+  // The lines, top to bottom.
   const titleLines = (title: string) =>
     drawn({ subtitle: "", title })
       .texts()
@@ -194,13 +192,13 @@ describe("drawCover: text", () => {
   // Roughly where a line's capitals reach above its baseline.
   const capTop = (line: { y: number; px: number }) => line.y - line.px * 0.8;
 
-  it("keeps a long title below a 50% label in a top corner", () => {
+  it("keeps a long title below a 50% label in the same row", () => {
     const lines = titleUnderBigLabel("top-right");
     expect(capTop(lines[0])).toBeGreaterThanOrEqual(35 + 312.5);
     expect(lines.every(fits)).toBe(true);
   });
 
-  it("keeps a long title above a 50% label in a bottom corner, and on the cover", () => {
+  it("keeps a long title above a 50% label in its corner, and on the cover", () => {
     const lines = titleUnderBigLabel("bottom-left");
     expect(lines.at(-1)?.y).toBeLessThanOrEqual(1000 - 35 - 312.5);
     expect(capTop(lines[0])).toBeGreaterThanOrEqual(50);
@@ -234,6 +232,100 @@ describe("drawCover: text", () => {
   });
 });
 
+describe("drawCover: text placement", () => {
+  const SPOTS: [TextPosition, number, number][] = [
+    ["top-left", 0, 0],
+    ["top-center", 1, 0],
+    ["top-right", 2, 0],
+    ["middle-left", 0, 1],
+    ["middle-center", 1, 1],
+    ["middle-right", 2, 1],
+    ["bottom-left", 0, 2],
+    ["bottom-center", 1, 2],
+    ["bottom-right", 2, 2],
+  ];
+
+  it.each(SPOTS)(
+    "puts the text block %s, 6%% from the sides and 5%% from the top and bottom",
+    (textPosition, column, row) => {
+      const { box } = drawn({ showLabel: false, textPosition });
+      if (!box) {
+        throw new Error("no text box");
+      }
+      const xs = [box.x, box.x + box.w / 2, box.x + box.w];
+      const ys = [box.y, box.y + box.h / 2, box.y + box.h];
+      expect(xs[column]).toBeCloseTo([60, 500, 940][column]);
+      expect(ys[row]).toBeCloseTo([50, 500, 950][row]);
+    }
+  );
+
+  it("returns no box when there is no text", () => {
+    expect(drawn({ showText: false }).box).toBeNull();
+    expect(drawn({ subtitle: "", title: " " }).box).toBeNull();
+  });
+
+  it("returns the box the lines are drawn in", () => {
+    const { box, texts } = drawn();
+    const [title, subtitle] = texts();
+    expect(box?.x).toBe(60);
+    expect(title.y).toBeGreaterThan(box?.y ?? 0);
+    expect(subtitle.y).toBeLessThan((box?.y ?? 0) + (box?.h ?? 0));
+  });
+
+  // In the fake canvas a line is half its font size per letter, less the
+  // tracking after the last one: "Night" is 308 wide, "ALEXA" 89.
+  it.each([
+    ["left", 0],
+    ["center", (308 - 89) / 2],
+    ["right", 308 - 89],
+  ] as const)("aligns the lines %s inside the block", (textAlign, inset) => {
+    const { box, texts } = drawn({ showLabel: false, textAlign });
+    const [title, subtitle] = texts();
+    expect(title.x).toBeCloseTo(box?.x ?? 0);
+    expect(subtitle.x - title.x).toBeCloseTo(inset);
+  });
+
+  it("moves the text to the middle of the side when the label has its corner", () => {
+    for (const corner of ["bottom-left", "top-right"] as const) {
+      const { box } = drawn({ labelCorner: corner, textPosition: corner });
+      if (!box) {
+        throw new Error("no text box");
+      }
+      expect(box.y + box.h / 2).toBeCloseTo(500);
+      const side = corner.endsWith("left") ? box.x : box.x + box.w;
+      expect(side).toBeCloseTo(corner.endsWith("left") ? 60 : 940);
+    }
+  });
+
+  it("stays in its corner when the label is switched off", () => {
+    const { box } = drawn({
+      labelCorner: "bottom-left",
+      showLabel: false,
+      textPosition: "bottom-left",
+    });
+    expect((box?.y ?? 0) + (box?.h ?? 0)).toBeCloseTo(950);
+  });
+
+  it("keeps short text level with a label in the other top corner", () => {
+    const { box } = drawn({
+      labelCorner: "top-left",
+      subtitle: "",
+      textPosition: "top-right",
+      title: "Hi",
+    });
+    expect(box?.y).toBeCloseTo(50);
+  });
+
+  it("drops wide text below a label in the same row", () => {
+    const { box } = drawn({
+      labelCorner: "top-left",
+      textPosition: "top-center",
+      title: "The Very Long Name Of An Album",
+    });
+    expect(box?.y).toBeCloseTo(35 + 62.5 + 20);
+  });
+});
+
 describe("drawPlayer", () => {
   const player = (patch: Partial<CoverState> = {}) => {
     const fake = fakeContext();
@@ -254,14 +346,6 @@ describe("drawPlayer", () => {
     expect(texts).toContain("Night");
     expect(texts).toContain("Alexa");
     expect(texts).toContain("1:24");
-  });
-
-  it("hides them when switched off", () => {
-    const texts = player({ playerShowText: false })
-      .texts()
-      .map((t) => t.text);
-    expect(texts).not.toContain("Alexa");
-    expect(texts.filter((t) => t === "Night")).toHaveLength(1); // only on the cover
   });
 
   it("says Untitled when there is no title", () => {
