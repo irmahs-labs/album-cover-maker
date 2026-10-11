@@ -417,6 +417,21 @@ input.switch:checked::after {
   font-size: 13px;
   color: var(--moss-deep);
 }
+.cover-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+.zoom-field {
+  flex: 1 1 200px;
+}
+.pill.lucky {
+  flex: none;
+}
 .player-stage {
   flex: 1;
   padding: 20px 8px;
@@ -470,9 +485,35 @@ input.switch:checked::after {
   font-weight: 400;
   opacity: 0.8;
 }
+.style-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
 .style-buttons {
   display: flex;
   gap: 6px;
+}
+.color-input {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+}
+.color-input input {
+  width: 150%;
+  height: 150%;
+  margin: -25%;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+}
+.color-input:has(:focus-visible) {
+  outline: 3px solid var(--moss);
+  outline-offset: 2px;
 }
 .style-buttons .toggle {
   width: 44px;
@@ -494,9 +535,16 @@ input.switch:checked::after {
   text-decoration: line-through;
 }
 
-.combo-list {
+/* The list fills whatever height the settings row gives the combos panel,
+   without making the row taller itself. */
+.combo-scroll {
+  position: relative;
   flex: 1;
-  max-height: 340px;
+  min-height: 360px;
+}
+.combo-list {
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

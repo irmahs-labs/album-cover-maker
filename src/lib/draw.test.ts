@@ -224,6 +224,21 @@ describe("drawCover: text", () => {
     expect(rects({ strike: true, underline: true })).toBe(plain + 2);
   });
 
+  it("draws the title and subtitle in their own colours", () => {
+    const fake = drawn({ subtitleColor: "#1f2420", titleColor: "#ffffff" });
+    const colorOf = (text: string) =>
+      fake.named("fillText").find((c) => c.args[0] === text)?.fillStyle;
+    expect(colorOf("Night")).toBe("#ffffff");
+    expect(colorOf("ALEXA")).toBe("#1f2420");
+  });
+
+  it("starts both in cream", () => {
+    const fills = drawn()
+      .named("fillText")
+      .map((c) => c.fillStyle);
+    expect(fills).toEqual(["#fff3cf", "#fff3cf"]);
+  });
+
   it("uses the chosen title font, bold and italic", () => {
     const fake = drawn({
       titleFont: "Cinzel",

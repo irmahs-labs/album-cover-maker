@@ -1,5 +1,5 @@
 import { ADVISORY_ASPECT, advisoryImage } from "./advisory";
-import { buttonColor, playerColor } from "./color";
+import { buttonColor, isDark, playerColor } from "./color";
 import { cssFont } from "./fonts";
 import type { TextStyle } from "./fonts";
 import type { CoverState, Photo } from "./state";
@@ -12,6 +12,14 @@ const BARK_GRID = "#4e6152";
 const SURFACE = "#dde87e";
 const SPROUT = "#b8d970";
 const CREAM = "#fff3cf";
+
+/** A soft shadow that lifts the text off the photo: dark, or light behind dark text. */
+function textShadow(ctx: Ctx, color: string) {
+  ctx.fillStyle = color;
+  ctx.shadowColor = isDark(color)
+    ? "rgba(255, 255, 255, 0.4)"
+    : "rgba(0, 0, 0, 0.5)";
+}
 const GOLD = "#f2d27a";
 
 /** Greedy word wrap. Words longer than `maxWidth` stay on their own line. */
@@ -199,13 +207,12 @@ export function drawCover(
     } else if (state.showLabel) {
       top = size * 0.035 + labelClearance;
     }
-    ctx.fillStyle = CREAM;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowOffsetY = size * 0.004;
     ctx.shadowBlur = size * 0.024;
     ctx.textBaseline = "alphabetic";
 
     if (state.subtitle.trim()) {
+      textShadow(ctx, state.subtitleColor);
       const px = size * 0.038;
       const tracking = size * 0.006;
       ctx.font = cssFont(state.subtitleFont, state.subtitleStyle, px);
@@ -229,6 +236,7 @@ export function drawCover(
     }
 
     if (state.title.trim()) {
+      textShadow(ctx, state.titleColor);
       let px = size * 0.124;
       const tracking = size * 0.002;
       const measure = (s: string) => ctx.measureText(s).width;

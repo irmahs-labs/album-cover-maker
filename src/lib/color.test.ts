@@ -4,6 +4,7 @@ import {
   buttonColor,
   dominantHues,
   hslToHex,
+  isDark,
   playerColor,
   rgbToHsl,
 } from "./color";
@@ -56,5 +57,14 @@ describe("dominantHues", () => {
 
   it("falls back for a grey image", () => {
     expect(dominantHues(pixels([30, 30, 30, 10]), 3, 77)).toEqual([77]);
+  });
+});
+
+describe("isDark", () => {
+  it("tells dark text colours from light ones", () => {
+    expect(isDark("#1f2420")).toBe(true);
+    expect(isDark("#000000")).toBe(true);
+    expect(isDark("#fff3cf")).toBe(false);
+    expect(isDark("#ffffff")).toBe(false);
   });
 });

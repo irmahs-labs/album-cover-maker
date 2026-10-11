@@ -40,6 +40,9 @@ export interface CoverState {
   subtitleFont: SubtitleFont;
   titleStyle: TextStyle;
   subtitleStyle: TextStyle;
+  /** Text colours, as lowercase #rrggbb. */
+  titleColor: string;
+  subtitleColor: string;
   playerShowText: boolean;
   playerHue: number;
   buttonHue: number;
@@ -58,9 +61,11 @@ export const DEFAULT_STATE: CoverState = {
   showLabel: true,
   showText: true,
   subtitle: "Artist name",
+  subtitleColor: "#fff3cf",
   subtitleFont: "Lato",
   subtitleStyle: PLAIN,
   title: "Album title",
+  titleColor: "#fff3cf",
   titleFont: "Abril Fatface",
   titleStyle: PLAIN,
   zoom: 100,
