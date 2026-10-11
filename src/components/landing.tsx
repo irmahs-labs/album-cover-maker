@@ -1,3 +1,4 @@
+import { COMBOS } from "../lib/combos";
 import { DEFAULT_STATE } from "../lib/state";
 import type { CoverState } from "../lib/state";
 import { linkTo } from "../router";
@@ -43,7 +44,7 @@ const STEPS = [
     title: "Drop in a photo",
   },
   {
-    text: "Type the album and artist name, then pick a combo or choose from 14 fonts yourself.",
+    text: `Type the album and artist name, then pick one of ${COMBOS.length} font pairings or mix your own.`,
     title: "Add your title",
   },
   {

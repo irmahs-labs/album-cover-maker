@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { buttonColor, dominantHues, playerColor } from "../lib/color";
-import { suggestCombos } from "../lib/combos";
+import { COMBOS, suggestCombos } from "../lib/combos";
 import type { Suggestion } from "../lib/combos";
 import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
@@ -607,7 +607,8 @@ export function Maker() {
               {photo
                 ? "Picked from your photo."
                 : "Add a photo and these pick up its colours."}{" "}
-              Each one sets the cover fonts and player colours.
+              Each of the {COMBOS.length} sets the cover fonts and player
+              colours.
             </p>
             <div
               role="list"
@@ -644,9 +645,7 @@ export function Maker() {
                       <span className="combo-text">
                         <span className="combo-name">{sug.combo.name}</span>
                         <span className="combo-fonts">
-                          {sug.combo.titleFont}
-                          {sug.combo.titleStyle.italic ? " italic" : ""} +{" "}
-                          {sug.combo.subtitleFont}
+                          with {sug.combo.subtitleFont}
                         </span>
                       </span>
                     </button>

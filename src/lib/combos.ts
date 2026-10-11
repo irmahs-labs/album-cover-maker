@@ -1,5 +1,5 @@
 import type { SubtitleFont, TextStyle, TitleFont } from "./fonts";
-import { PLAIN } from "./fonts";
+import { PAIRS, PLAIN } from "./fonts";
 
 export interface Combo {
   id: string;
@@ -13,71 +13,34 @@ export interface Combo {
   buttonShift: number;
 }
 
-export const COMBOS: Combo[] = [
-  {
-    buttonShift: 0,
-    id: "fatface",
-    name: "Fatface",
-    playerShift: 0,
-    subtitleFont: "Lato",
-    titleFont: "Abril Fatface",
-    titleStyle: PLAIN,
-  },
-  {
-    buttonShift: -5,
-    id: "night-drive",
-    name: "Night drive",
-    playerShift: 0,
-    subtitleFont: "Figtree",
-    titleFont: "Bebas Neue",
-    titleStyle: PLAIN,
-  },
-  {
-    buttonShift: 60,
-    id: "matcha-latte",
-    name: "Matcha latte",
-    playerShift: 40,
-    subtitleFont: "Figtree",
-    titleFont: "DM Serif Display",
-    titleStyle: PLAIN,
-  },
-  {
-    buttonShift: 180,
-    id: "blue-hour",
-    name: "Blue hour",
-    playerShift: 180,
-    subtitleFont: "Space Grotesk",
-    titleFont: "Syne",
-    titleStyle: PLAIN,
-  },
-  {
-    buttonShift: -30,
-    id: "lo-fi-tape",
-    name: "Lo-fi tape",
-    playerShift: -25,
-    subtitleFont: "IBM Plex Mono",
-    titleFont: "Playfair Display",
-    titleStyle: { ...PLAIN, italic: true },
-  },
-  {
-    buttonShift: -60,
-    id: "sakura-pop",
-    name: "Sakura pop",
-    playerShift: -60,
-    subtitleFont: "Karla",
-    titleFont: "Righteous",
-    titleStyle: PLAIN,
-  },
-  {
-    buttonShift: 15,
-    id: "late-cinema",
-    name: "Late cinema",
-    playerShift: 15,
-    subtitleFont: "Work Sans",
-    titleFont: "Anton",
-    titleStyle: PLAIN,
-  },
-];
+/** Player colour offsets from the photo's hue, cycled through the pairs. */
+const SHIFTS = [
+  [0, -5],
+  [40, 60],
+  [180, 180],
+  [-25, -30],
+  [-60, -60],
+  [15, 15],
+  [90, 100],
+  [-120, -110],
+] as const;
+
+export const COMBOS: Combo[] = PAIRS.map(([titleFont, subtitleFont], i) => {
+  // A family paired with itself (Quicksand) uses its bold for the title.
+  const same = titleFont === (subtitleFont as string);
+  const [playerShift, buttonShift] = SHIFTS[i % SHIFTS.length];
+  return {
+    buttonShift,
+    id: `${titleFont}-${subtitleFont}`
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9]+/gu, "-"),
+    name: same ? `${titleFont} Bold` : titleFont,
+    playerShift,
+    subtitleFont,
+    titleFont,
+    titleStyle: same ? { ...PLAIN, bold: true } : PLAIN,
+  };
+});
 
 export interface Suggestion {
   combo: Combo;
@@ -87,16 +50,26 @@ export interface Suggestion {
 
 const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
 
+/** The combos in a fixed shuffled order for each round; round 0 is the listed order. */
+const shuffled = (round: number) => {
+  const order = [...COMBOS];
+  let seed = round;
+  for (let i = order.length - 1; i > 0 && round > 0; i -= 1) {
+    seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+    const j = seed % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+};
+
 /**
  * Turns the photo's hues into combo suggestions. `round` (from "shuffle
- * ideas") rotates which photo hue each combo starts from and the order the
- * combos are listed in, so every shuffle gives a different set.
+ * ideas") reshuffles the list and rotates which photo hue each combo
+ * starts from, so every shuffle gives a different set.
  */
 export function suggestCombos(photoHues: number[], round = 0): Suggestion[] {
   const hues = photoHues.length ? photoHues : [40];
-  const n = COMBOS.length;
-  return COMBOS.map((_, i) => {
-    const combo = COMBOS[(i + round) % n];
+  return shuffled(round).map((combo, i) => {
     const base = hues[(i + round) % hues.length];
     return {
       buttonHue: wrap(base + combo.buttonShift),

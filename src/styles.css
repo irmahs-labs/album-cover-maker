@@ -486,6 +486,11 @@ input.switch:checked::after {
   border-top: 1.5px dashed var(--moss);
   border-bottom: 1.5px dashed var(--moss);
 }
+/* Off-screen pairings skip layout, so their fonts load only when scrolled into view. */
+.combo-list > div {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
 .combo {
   width: 100%;
   display: flex;

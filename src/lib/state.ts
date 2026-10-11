@@ -38,7 +38,7 @@ export interface CoverState {
 
 export const DEFAULT_STATE: CoverState = {
   buttonHue: 35,
-  comboId: "fatface",
+  comboId: "abril-fatface-lato",
   labelCorner: "top-left",
   labelSize: 10,
   panX: 0,
