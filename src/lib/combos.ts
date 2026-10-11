@@ -26,7 +26,7 @@ const SHIFTS = [
 ] as const;
 
 export const COMBOS: Combo[] = PAIRS.map(([titleFont, subtitleFont], i) => {
-  // A family paired with itself (Quicksand) uses its bold for the title.
+  // A family paired with itself (Quicksand, Archivo Narrow) uses its bold for the title.
   const same = titleFont === (subtitleFont as string);
   const [playerShift, buttonShift] = SHIFTS[i % SHIFTS.length];
   return {

@@ -23,9 +23,16 @@ describe("COMBOS", () => {
   });
 
   it("uses the bold for a family paired with itself", () => {
-    const quicksand = COMBOS.find((c) => c.titleFont === "Quicksand");
-    expect(quicksand?.titleStyle.bold).toBe(true);
-    expect(quicksand?.name).toBe("Quicksand Bold");
+    for (const family of ["Quicksand", "Archivo Narrow"]) {
+      const combo = COMBOS.find((c) => c.titleFont === family);
+      expect(combo?.titleStyle.bold).toBe(true);
+      expect(combo?.name).toBe(`${family} Bold`);
+    }
+  });
+
+  it("keeps the other pairings in their regular weight", () => {
+    const plain = COMBOS.filter((c) => !c.titleStyle.bold);
+    expect(plain).toHaveLength(COMBOS.length - 2);
   });
 
   it("starts on a combo that exists", () => {
