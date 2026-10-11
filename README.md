@@ -22,7 +22,21 @@ npm run build      # outputs dist/
 - `src/components/maker.tsx`: the cover maker
 - `src/lib/render.ts`: draws the cover and player on a canvas; the previews and the PNG exports share it, so what you see is what you download
 - `src/lib/combos.ts`, `src/lib/color.ts`: combo suggestions from the photo's colours
+- `src/lib/fonts.ts`: `PAIRS`, every title + subtitle font pairing; the combos and font menus are built from it
+- `src/font-faces.css`: generated `@font-face` rules for those fonts (see below)
 - `.claude/hooks/session-start.sh`: installs dependencies when a Claude Code cloud session starts
+
+## Fonts
+
+Fonts are served with the site from the [Fontsource](https://fontsource.org) npm packages, so visitors' browsers never contact Google. All of them are under the SIL Open Font License.
+
+To add a pairing:
+
+1. Add it to `PAIRS` in `src/lib/fonts.ts`.
+2. Install any new family: `npm install @fontsource/<name-in-kebab-case>` (for example `@fontsource/abril-fatface`).
+3. Run `npm run fonts` to regenerate `src/font-faces.css`, and commit both.
+
+A test fails if a family in `PAIRS` has no font face, so a forgotten step 3 shows up in CI.
 
 ## Deploy
 

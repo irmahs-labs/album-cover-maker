@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { COMBOS, suggestCombos } from "./combos";
-import {
-  PAIRS,
-  SUBTITLE_FONTS,
-  TITLE_FONTS,
-  fontsStylesheetUrl,
-} from "./fonts";
+import { PAIRS, SUBTITLE_FONTS, TITLE_FONTS } from "./fonts";
 import { DEFAULT_STATE } from "./state";
+
+import fontFaces from "../font-faces.css?raw";
 
 describe("COMBOS", () => {
   it("has one combo per pairing, with unique ids", () => {
@@ -43,10 +40,11 @@ describe("COMBOS", () => {
     });
   });
 
-  it("asks Google Fonts for every family once", () => {
-    const url = fontsStylesheetUrl();
-    expect(url.match(/family=Lato:/gu)).toHaveLength(1);
-    expect(url).toContain("family=Stint+Ultra+Expanded:");
+  it("has a self-hosted font face for every family (run `npm run fonts` if not)", () => {
+    for (const family of new Set(PAIRS.flat())) {
+      expect(fontFaces).toContain(`font-family: '${family}';`);
+    }
+    expect(fontFaces).not.toContain("googleapis");
   });
 });
 
