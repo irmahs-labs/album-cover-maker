@@ -296,6 +296,16 @@ describe("maker: I'm feeling lucky", () => {
     expect(input("title-color").value).toBe(textColors([40]).at(-1));
     expect(input("subtitle-color").value).toBe(textColors([40]).at(-1));
     expect(pressedIn("Subtitle font style")).toEqual([]);
+    // The last spot, bottom right, right-aligned; the label holds that
+    // corner, so the text sits in the middle of the right side.
+    expect(pressedIn("Vertical position")).toEqual(["bottom"]);
+    expect(pressedIn("Horizontal position")).toEqual(["right"]);
+    expect(pressedIn("Text alignment")).toEqual(["Align right"]);
+    expect(
+      screen.getByText(
+        "The label has the bottom right corner, so the text sits in the middle right."
+      )
+    ).toBeTruthy();
     // 40 + 0.98 × 90, and the buttons opposite it on the wheel.
     expect(input("player-hue").value).toBe("128");
     expect(input("button-hue").value).toBe("308");
@@ -312,6 +322,10 @@ describe("maker: I'm feeling lucky", () => {
       "Title strikethrough",
     ]);
     expect(pressedIn("Label size")).toEqual(["XS 8%"]);
+    // The first spot and alignment: top left, left-aligned.
+    expect(pressedIn("Vertical position")).toEqual(["top"]);
+    expect(pressedIn("Horizontal position")).toEqual(["left"]);
+    expect(pressedIn("Text alignment")).toEqual(["Align left"]);
   });
 
   it("keeps the words, and whether the label and text show", async () => {
