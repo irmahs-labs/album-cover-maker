@@ -1,7 +1,7 @@
 import { hslToHex } from "./color";
 import { COMBOS } from "./combos";
 import type { TextStyle } from "./fonts";
-import { CORNERS, LABEL_SIZES } from "./state";
+import { CORNERS, LABEL_SIZES, TEXT_ALIGNS, TEXT_POSITIONS } from "./state";
 import type { CoverState } from "./state";
 
 /** A source of numbers in [0, 1), like Math.random. */
@@ -40,8 +40,9 @@ const treatment = (random: Random, bold = false): TextStyle => ({
 
 /**
  * "I'm feeling lucky": a new label size and corner, font pairing, text
- * colours and treatments, and player and button colours. The words, the
- * photo and whether the label and text show are left as they are.
+ * colours, treatments, spot and alignment, and player and button colours.
+ * The words, the photo and whether the label and text show are left as
+ * they are.
  */
 export function feelingLucky(
   state: CoverState,
@@ -55,6 +56,10 @@ export function feelingLucky(
   const subtitleColor = chance(0.6, random) ? titleColor : pick(colors, random);
   const playerHue = wrap(pick(hues, random) + (random() * 2 - 1) * 90);
   const buttonHue = wrap(playerHue + pick([0, 0, 30, -30, 180], random));
+  // Any of the nine spots: one the label holds sends the text to the
+  // middle of that side, as it would by hand.
+  const textPosition = pick(TEXT_POSITIONS, random);
+  const textAlign = pick(TEXT_ALIGNS, random);
   return {
     ...state,
     buttonHue,
@@ -65,6 +70,8 @@ export function feelingLucky(
     subtitleColor,
     subtitleFont: combo.subtitleFont,
     subtitleStyle: treatment(random),
+    textAlign,
+    textPosition,
     titleColor,
     titleFont: combo.titleFont,
     titleStyle: treatment(random, combo.titleStyle.bold),

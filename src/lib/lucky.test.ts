@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { COMBOS } from "./combos";
 import { feelingLucky, textColors } from "./lucky";
-import { CORNERS, DEFAULT_STATE, LABEL_SIZES } from "./state";
+import {
+  CORNERS,
+  DEFAULT_STATE,
+  LABEL_SIZES,
+  TEXT_ALIGNS,
+  TEXT_POSITIONS,
+} from "./state";
 import type { CoverState } from "./state";
 
 /** A small seeded generator, so a run of rolls is the same every time. */
@@ -40,6 +46,8 @@ describe("feelingLucky", () => {
     for (const s of rolls(200)) {
       expect(sizes).toContain(s.labelSize);
       expect(CORNERS).toContain(s.labelCorner);
+      expect(TEXT_POSITIONS).toContain(s.textPosition);
+      expect(TEXT_ALIGNS).toContain(s.textAlign);
       expect(
         COMBOS.some(
           (c) =>
@@ -60,6 +68,8 @@ describe("feelingLucky", () => {
       new Set(all.map((s) => JSON.stringify(s[key]))).size;
     expect(distinct("labelSize")).toBe(LABEL_SIZES.length);
     expect(distinct("labelCorner")).toBe(CORNERS.length);
+    expect(distinct("textPosition")).toBe(TEXT_POSITIONS.length);
+    expect(distinct("textAlign")).toBe(TEXT_ALIGNS.length);
     expect(distinct("titleFont")).toBeGreaterThan(10);
     expect(distinct("titleColor")).toBeGreaterThan(4);
     expect(distinct("titleStyle")).toBeGreaterThan(3);
