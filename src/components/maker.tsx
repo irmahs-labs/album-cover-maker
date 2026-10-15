@@ -44,6 +44,7 @@ import type { Kind } from "./cover-canvas";
 import { filterPhoto } from "./filter-photo";
 import { FontPicker } from "./font-picker";
 import { Logo } from "./logo";
+import { ThemeToggle } from "./theme-toggle";
 
 function useElementWidth<T extends HTMLElement>(fallback: number) {
   const ref = useRef<T>(null);
@@ -671,6 +672,7 @@ export function Maker() {
               redo
             </button>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 

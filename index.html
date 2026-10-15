@@ -8,7 +8,31 @@
       name="description"
       content="Make an album cover in your browser. Drop in a photo, add your title, export a 3000 × 3000 PNG. No sign-up, no login."
     />
-    <meta name="theme-color" content="#f3f1c8" />
+    <meta
+      name="theme-color"
+      content="#f3f1c8"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#1c2420"
+      media="(prefers-color-scheme: dark)"
+    />
+    <!-- Light or Dark Matcha before the first paint: the saved choice, or
+         else the device's setting. src/lib/theme.ts takes over from here. -->
+    <script>
+      try {
+        var saved = localStorage.getItem("theme");
+        document.documentElement.dataset.theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      } catch (e) {
+        document.documentElement.dataset.theme = "light";
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>

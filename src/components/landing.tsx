@@ -4,6 +4,7 @@ import type { CoverState } from "../lib/state";
 import { linkTo } from "../router";
 import { CoverCanvas, useFontsReady } from "./cover-canvas";
 import { Logo } from "./logo";
+import { ThemeToggle } from "./theme-toggle";
 
 const SAMPLE: CoverState = {
   ...DEFAULT_STATE,
@@ -82,9 +83,12 @@ export function Landing() {
             <span className="brand-by">by Irma HS</span>
           </span>
         </a>
-        <a href="/make" onClick={linkTo("/make")} className="pill primary">
-          make a cover
-        </a>
+        <div className="topbar-end">
+          <ThemeToggle />
+          <a href="/make" onClick={linkTo("/make")} className="pill primary">
+            make a cover
+          </a>
+        </div>
       </header>
 
       <main className="landing">

@@ -30,3 +30,7 @@ npm run test:e2e  # Playwright, when a change touches what the browser shows
 ```
 
 `npm run check` runs Ultracite (oxlint + oxfmt) and is report-only; the PostToolUse hook in `.claude/hooks/ultracite.sh` runs it on every file you edit.
+
+## Design
+
+The app is the one Cute Matcha's _Apps_ section was drawn from, and it works in both of the system's themes. Colours are its role tokens, named by job (`ground`, `panel`, `raised`, `text`, `text-muted`, `strong`, `on-strong`, `accent`, `on-accent`, …), at the top of `src/styles.css`: Light Matcha on `:root`, Dark Matcha on `:root[data-theme="dark"]`. Pick a token by what the thing is, never a hex. Every surface sets its own text: `text` on `panel` and `raised`, `on-accent` on `accent` (the lime windows), `on-strong` on `strong`. The inline script in `index.html` sets `data-theme` before the first paint, from the visitor's saved choice or else the device's setting; `src/lib/theme.ts` keeps it, and the header's sun/moon pill saves a choice. The cover, the record and the player mock-up are artwork and keep their own colours.
