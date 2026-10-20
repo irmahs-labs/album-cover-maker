@@ -12,7 +12,7 @@ const SAMPLE: CoverState = {
   title: "Sleepless Nights",
 };
 
-function Window({
+const Window = ({
   name,
   children,
   className = "",
@@ -20,24 +20,22 @@ function Window({
   name: string;
   children: React.ReactNode;
   className?: string;
-}) {
-  return (
-    <section
-      className={`window ${className}`}
-      aria-label={name.replaceAll(/[._]/g, " ")}
-    >
-      <div className="window-bar">
-        <span className="window-name">{name}</span>
-        <span className="window-dots" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-      </div>
-      <div className="window-body">{children}</div>
-    </section>
-  );
-}
+}) => (
+  <section
+    className={`window ${className}`}
+    aria-label={name.replaceAll(/[._]/gu, " ")}
+  >
+    <div className="window-bar">
+      <span className="window-name">{name}</span>
+      <span className="window-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </div>
+    <div className="window-body">{children}</div>
+  </section>
+);
 
 const STEPS = [
   {
@@ -70,7 +68,7 @@ const FAQ = [
   },
 ];
 
-export function Landing() {
+export const Landing = () => {
   const fontsTick = useFontsReady(SAMPLE);
 
   return (
@@ -198,4 +196,4 @@ export function Landing() {
       </footer>
     </div>
   );
-}
+};

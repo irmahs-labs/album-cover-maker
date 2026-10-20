@@ -6,7 +6,12 @@ import { App } from "./app";
 import "./font-faces.css";
 import "./styles.css";
 
-createRoot(document.querySelector("#root")!).render(
+const root = document.querySelector("#root");
+if (!root) {
+  throw new Error("index.html has no #root element to render the app into");
+}
+
+createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>

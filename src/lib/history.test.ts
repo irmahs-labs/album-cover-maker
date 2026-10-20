@@ -9,8 +9,13 @@ import {
 import type { History, HistoryAction } from "./history";
 
 type H = History<number>;
-const run = (h: H, ...actions: HistoryAction<number>[]) =>
-  actions.reduce(historyReducer<number>, h);
+const run = (h: H, ...actions: HistoryAction<number>[]) => {
+  let history = h;
+  for (const action of actions) {
+    history = historyReducer(history, action);
+  }
+  return history;
+};
 const set = (value: number, group?: string, now = 0) =>
   ({ group, now, type: "set", update: () => value }) as const;
 const undo = { type: "undo" } as const;

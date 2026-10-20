@@ -11,41 +11,53 @@ export interface Call {
 }
 
 export const fontPx = (font: string) =>
-  Number(/(\d+(?:\.\d+)?)px/u.exec(font)?.[1] ?? 10);
+  Number(/(?<px>\d+(?:\.\d+)?)px/u.exec(font)?.groups?.px ?? 10);
+
+const noop = () => {
+  // A gradient stop changes nothing the tests read.
+};
 
 export const fakeContext = () => {
   const calls: Call[] = [];
-  const props: Record<string, unknown> = {
-    fillStyle: "#000",
-    font: "10px sans-serif",
-  };
-  const ctx = new Proxy(props, {
-    get(target, key: string) {
-      if (key === "measureText") {
-        return (text: string) => ({
-          width: text.length * fontPx(String(target.font)) * 0.5,
-        });
-      }
-      if (key in target) {
-        return target[key];
-      }
-      if (key.startsWith("create") && key.endsWith("Gradient")) {
-        return () => ({ addColorStop() {} });
-      }
-      return (...args: unknown[]) => {
-        calls.push({
-          args,
-          fillStyle: target.fillStyle,
-          font: String(target.font),
-          name: key,
-        });
-      };
-    },
-    set(target, key: string, value) {
-      target[key] = value;
-      return true;
-    },
-  }) as unknown as CanvasRenderingContext2D;
+  // The properties the drawing code has set, from the canvas defaults on.
+  const props = new Map<string, unknown>([
+    ["fillStyle", "#000"],
+    ["font", "10px sans-serif"],
+  ]);
+  const font = () => String(props.get("font"));
+  // SAFETY: the proxy answers every member a CanvasRenderingContext2D has:
+  // properties from props, measureText, gradients, and a recording function
+  // for any other method.
+  const ctx = new Proxy(
+    {},
+    {
+      get(_target, key: string) {
+        if (key === "measureText") {
+          return (text: string) => ({
+            width: text.length * fontPx(font()) * 0.5,
+          });
+        }
+        if (props.has(key)) {
+          return props.get(key);
+        }
+        if (key.startsWith("create") && key.endsWith("Gradient")) {
+          return () => ({ addColorStop: noop });
+        }
+        return (...args: unknown[]) => {
+          calls.push({
+            args,
+            fillStyle: props.get("fillStyle"),
+            font: font(),
+            name: key,
+          });
+        };
+      },
+      set(_target, key: string, value) {
+        props.set(key, value);
+        return true;
+      },
+    }
+  ) as CanvasRenderingContext2D;
 
   const named = (name: string) => calls.filter((c) => c.name === name);
   /** Every fillText, as { text, x, y, px }. */

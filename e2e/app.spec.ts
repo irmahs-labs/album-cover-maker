@@ -158,20 +158,17 @@ test("dragging the title snaps it to one of nine spots", async ({ page }) => {
   }
   const at = (fx: number, fy: number) =>
     [box.x + box.width * fx, box.y + box.height * fy] as const;
+  const pressed = (group: string) =>
+    page
+      .getByRole("group", { name: group })
+      .locator('[aria-pressed="true"]')
+      .textContent();
   /** Whether the text sits at a spot, going by the two position groups. */
-  const atSpot = async (row: string, column: string) => {
-    const pressed = (group: string) =>
-      page
-        .getByRole("group", { name: group })
-        .locator('[aria-pressed="true"]')
-        .textContent();
-    return (
-      [
-        await pressed("Vertical position"),
-        await pressed("Horizontal position"),
-      ].join(" ") === `${row} ${column}`
-    );
-  };
+  const atSpot = async (row: string, column: string) =>
+    [
+      await pressed("Vertical position"),
+      await pressed("Horizontal position"),
+    ].join(" ") === `${row} ${column}`;
 
   // The default title sits bottom left; grab it there.
   await page.mouse.move(...at(0.2, 0.86));
@@ -256,11 +253,13 @@ test("each font in the menu is written in its own font", async ({ page }) => {
     "Grand Hotel",
   ]) {
     const option = list.getByRole("option", { exact: true, name });
+    // oxlint-disable-next-line no-await-in-loop -- one menu option at a time, as a person would check them
     const family = await option.evaluate(
       (el) => getComputedStyle(el).fontFamily
     );
     expect(family.startsWith(`"${name}"`)).toBe(true);
     // ...and the font itself has loaded, so it isn't the fallback showing.
+    // oxlint-disable-next-line no-await-in-loop -- one menu option at a time, as a person would check them
     await expect
       .poll(() =>
         page.evaluate((n) => document.fonts.check(`16px "${n}"`), name)
@@ -291,7 +290,9 @@ test("never contacts another site, photo and fonts included", async ({
         hasText: new RegExp(`^${name}$`, "u"),
       }),
     });
+    // oxlint-disable-next-line no-await-in-loop -- the clicks are steps in order, each on the page the last one left
     await combo.scrollIntoViewIfNeeded();
+    // oxlint-disable-next-line no-await-in-loop -- the clicks are steps in order, each on the page the last one left
     await combo.click();
   }
   await exportFile(page, "Cover");

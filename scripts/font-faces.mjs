@@ -10,15 +10,17 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const STYLES = ["400", "400-italic", "700", "700-italic"];
 const SUBSET =
-  /^\/\* [a-z0-9-]+-(latin|latin-ext)-\d{3}-(normal|italic) \*\/$/u;
+  /^\/\* [a-z0-9-]+-(?:latin|latin-ext)-\d{3}-(?:normal|italic) \*\/$/u;
 
-const source = readFileSync("src/lib/fonts.ts", "utf8");
+const source = readFileSync("src/lib/fonts.ts", "utf-8");
 const pairs = source.slice(
   source.indexOf("PAIRS = ["),
   source.indexOf("] as const")
 );
 const families = [
-  ...new Set([...pairs.matchAll(/"([^"]+)"/gu)].map((m) => m[1])),
+  ...new Set(
+    [...pairs.matchAll(/"(?<family>[^"]+)"/gu)].map((m) => m.groups.family)
+  ),
 ];
 
 const rules = [];
@@ -35,14 +37,14 @@ for (const family of families) {
       continue;
     }
     // Each block is a comment naming the subset, then its @font-face rule.
-    for (const block of readFileSync(file, "utf8").split(/\n(?=\/\* )/u)) {
+    for (const block of readFileSync(file, "utf-8").split(/\n(?=\/\* )/u)) {
       const [comment, ...rest] = block.trim().split("\n");
       if (!SUBSET.test(comment)) {
         continue;
       }
       const woff2 = rest
         .join("\n")
-        .match(/url\(\.\/files\/([^)]+\.woff2)\)/u)?.[1];
+        .match(/url\(\.\/files\/(?<file>[^)]+\.woff2)\)/u)?.groups.file;
       if (!woff2) {
         throw new Error(`No woff2 in ${file}: ${comment}`);
       }

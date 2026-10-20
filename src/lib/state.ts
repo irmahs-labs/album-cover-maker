@@ -28,15 +28,15 @@ export const TEXT_ALIGNS: TextAlign[] = ["left", "center", "right"];
  * Where the text block is drawn: the spot picked, except that the label
  * keeps its corner and the text moves to the middle of that side.
  */
-export function placedText(
+export const placedText = (
   state: Pick<CoverState, "labelCorner" | "showLabel" | "textPosition">
-): TextPosition {
+): TextPosition => {
   const { labelCorner, showLabel, textPosition } = state;
   if (showLabel && textPosition === labelCorner) {
     return `middle-${textPosition.endsWith("left") ? "left" : "right"}`;
   }
   return textPosition;
-}
+};
 
 /** The advisory label's sizes, as a % of the cover's width. */
 export const LABEL_SIZES = [
@@ -56,13 +56,18 @@ export interface Photo {
 }
 
 export interface CoverState {
-  zoom: number; // 100-500 (%)
-  panX: number; // -1..1, where the crop sits inside the spare width
-  panY: number; // -1..1
+  /** 100-500 (%) */
+  zoom: number;
+  /** -1..1, where the crop sits inside the spare width */
+  panX: number;
+  /** -1..1 */
+  panY: number;
   filter: FilterId;
-  filterStrength: number; // 0-100 (%)
+  /** 0-100 (%) */
+  filterStrength: number;
   showLabel: boolean;
-  labelSize: number; // % of cover width
+  /** % of cover width */
+  labelSize: number;
   labelCorner: Corner;
   showText: boolean;
   title: string;
@@ -106,13 +111,10 @@ export const DEFAULT_STATE: CoverState = {
   zoom: 100,
 };
 
-export function slug(text: string): string {
-  return (
-    text
-      .toLowerCase()
-      .normalize("NFKD")
-      .replaceAll(/[̀-ͯ]/g, "")
-      .replaceAll(/[^a-z0-9]+/g, "-")
-      .replaceAll(/^-+|-+$/g, "") || "cover"
-  );
-}
+export const slug = (text: string): string =>
+  text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replaceAll(/[̀-ͯ]/gu, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "") || "cover";

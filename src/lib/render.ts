@@ -15,23 +15,23 @@ const SPROUT = "#b8d970";
 const CREAM = "#fff3cf";
 
 /** A soft shadow that lifts the text off the photo: dark, or light behind dark text. */
-function textShadow(ctx: Ctx, color: string) {
+const textShadow = (ctx: Ctx, color: string) => {
   ctx.fillStyle = color;
   ctx.shadowColor = isDark(color)
     ? "rgba(255, 255, 255, 0.4)"
     : "rgba(0, 0, 0, 0.5)";
-}
+};
 const GOLD = "#f2d27a";
 
 /** Greedy word wrap. Words longer than `maxWidth` stay on their own line. */
-export function wrapLines(
+export const wrapLines = (
   text: string,
   maxWidth: number,
   measure: (s: string) => number
-): string[] {
+): string[] => {
   const lines: string[] = [];
   for (const para of text.split("\n")) {
-    const words = para.split(/\s+/).filter(Boolean);
+    const words = para.split(/\s+/u).filter(Boolean);
     let line = "";
     for (const word of words) {
       const next = line ? `${line} ${word}` : word;
@@ -47,31 +47,32 @@ export function wrapLines(
     }
   }
   return lines;
-}
+};
+
+const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 
 /** Where the photo lands inside a square of side `size`, honouring zoom and pan. */
-export function photoRect(
+export const photoRect = (
   photo: { width: number; height: number },
   size: number,
   zoom: number,
   panX: number,
   panY: number
-) {
+) => {
   const scale =
     Math.max(size / photo.width, size / photo.height) * (zoom / 100);
   const w = photo.width * scale;
   const h = photo.height * scale;
-  const clamp = (v: number) => Math.max(-1, Math.min(1, v));
   return {
     h,
     w,
     x: (size - w) / 2 + (clamp(panX) * (w - size)) / 2,
     y: (size - h) / 2 + (clamp(panY) * (h - size)) / 2,
   };
-}
+};
 
 /** Artwork shown until someone adds a photo: a record on the bark grid. */
-function drawPlaceholder(ctx: Ctx, size: number) {
+const drawPlaceholder = (ctx: Ctx, size: number) => {
   ctx.fillStyle = BARK;
   ctx.fillRect(0, 0, size, size);
   ctx.strokeStyle = BARK_GRID;
@@ -113,7 +114,7 @@ function drawPlaceholder(ctx: Ctx, size: number) {
   const fy = size * 0.18;
   const pr = size * 0.045;
   ctx.lineWidth = size / 250;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
     ctx.fillStyle = CREAM;
     ctx.beginPath();
@@ -134,10 +135,10 @@ function drawPlaceholder(ctx: Ctx, size: number) {
   ctx.stroke();
   ctx.fillStyle = SPROUT;
   ctx.fillRect(0, size * 0.97, size, size * 0.03);
-}
+};
 
 /** Draws text left-aligned at (x, baseline) with tracking and optional underline/strike. */
-function drawStyledText(
+const drawStyledText = (
   ctx: Ctx,
   text: string,
   x: number,
@@ -145,7 +146,7 @@ function drawStyledText(
   px: number,
   tracking: number,
   style: TextStyle
-) {
+) => {
   ctx.letterSpacing = `${tracking}px`;
   ctx.fillText(text, x, baseline);
   if (!style.underline && !style.strike) {
@@ -159,18 +160,178 @@ function drawStyledText(
   if (style.strike) {
     ctx.fillRect(x, baseline - px * 0.32, width, thick);
   }
+};
+
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
+
+/** Where the advisory label sits on a cover of side `size`. */
+export const labelBox = (
+  size: number,
+  state: Pick<CoverState, "labelCorner" | "labelSize">
+): Box => {
+  const w = (size * state.labelSize) / 100;
+  const h = w / ADVISORY_ASPECT;
+  const m = size * 0.035;
+  return {
+    h,
+    w,
+    x: state.labelCorner.endsWith("left") ? m : size - m - w,
+    y: state.labelCorner.startsWith("top") ? m : size - m - h,
+  };
+};
+
+const overlaps = (a: Box, b: Box, gap: number) =>
+  a.x < b.x + b.w + gap &&
+  a.x + a.w > b.x - gap &&
+  a.y < b.y + b.h + gap &&
+  a.y + a.h > b.y - gap;
+
+interface TextLine {
+  text: string;
+  font: string;
+  px: number;
+  tracking: number;
+  style: TextStyle;
+  color: string;
+  /** Ink width, without the tracking after the last letter. */
+  width: number;
+  /** Line height, and the baseline's distance from the line's top. */
+  height: number;
+  baseline: number;
+  gapBefore: number;
+}
+
+/**
+ * Wraps the title and subtitle for a band from `top` to `bottom`. The title
+ * shrinks until every line fits the width and the block fits the band,
+ * and never takes more than 70% of the cover's height.
+ */
+const layoutText = (
+  ctx: Ctx,
+  size: number,
+  state: CoverState,
+  top: number,
+  bottom: number
+) => {
+  const maxW = size * 0.88;
+  const measure = (s: string) => ctx.measureText(s).width;
+  const lines = (
+    text: string,
+    font: string,
+    px: number,
+    tracking: number,
+    style: TextStyle,
+    color: string,
+    height: number,
+    baseline: number
+  ): TextLine[] => {
+    ctx.font = font;
+    ctx.letterSpacing = `${tracking}px`;
+    return wrapLines(text, maxW, measure).map((t) => ({
+      baseline,
+      color,
+      font,
+      gapBefore: 0,
+      height,
+      px,
+      style,
+      text: t,
+      tracking,
+      width: measure(t) - tracking,
+    }));
+  };
+
+  let subtitle: TextLine[] = [];
+  if (state.subtitle.trim()) {
+    const px = size * 0.038;
+    subtitle = lines(
+      state.subtitle.trim().toUpperCase(),
+      cssFont(state.subtitleFont, state.subtitleStyle, px),
+      px,
+      size * 0.006,
+      state.subtitleStyle,
+      state.subtitleColor,
+      px * 1.25,
+      px * 1.03
+    );
+  }
+  const gap = subtitle.length ? size * 0.012 : 0;
+  const subtitleHeight = subtitle.reduce((h, l) => h + l.height, 0) + gap;
+
+  let title: TextLine[] = [];
+  if (state.title.trim()) {
+    const room = Math.min(size * 0.7, bottom - top - subtitleHeight);
+    let px = size * 0.124;
+    for (let tries = 0; tries < 30; tries += 1) {
+      title = lines(
+        state.title.trim(),
+        cssFont(state.titleFont, state.titleStyle, px),
+        px,
+        size * 0.002,
+        state.titleStyle,
+        state.titleColor,
+        px * 0.95,
+        px * 0.87
+      );
+      const tooWide = title.some((l) => l.width > maxW);
+      const tooTall = title.length * px * 0.95 > room;
+      if (!tooWide && !tooTall) {
+        break;
+      }
+      px *= 0.92;
+    }
+    if (subtitle.length) {
+      subtitle[0].gapBefore = gap;
+    }
+  }
+  const all = [...title, ...subtitle];
+  return {
+    h: all.reduce((h, l) => h + l.gapBefore + l.height, 0),
+    lines: all,
+    w: Math.max(...all.map((l) => l.width)),
+  };
+};
+
+/** The block's box at `position`, inside the band from `top` to `bottom`. */
+const placeBlock = (
+  block: { w: number; h: number },
+  size: number,
+  position: TextPosition,
+  top: number,
+  bottom: number
+): Box => {
+  const [row, column] = position.split("-");
+  const side = size * 0.06;
+  let x = (size - block.w) / 2;
+  if (column === "left") {
+    x = side;
+  } else if (column === "right") {
+    x = size - side - block.w;
+  }
+  let y = Math.max(top, Math.min(size / 2 - block.h / 2, bottom - block.h));
+  if (row === "top") {
+    y = top;
+  } else if (row === "bottom") {
+    y = bottom - block.h;
+  }
+  return { h: block.h, w: block.w, x, y };
+};
 
 /**
  * The cover, drawn into the square (0, 0, size, size) of `ctx`. Returns
  * the box the title and subtitle take up, or null when there is no text.
  */
-export function drawCover(
+export const drawCover = (
   ctx: Ctx,
   size: number,
   state: CoverState,
   photo: Photo | null
-): Box | null {
+): Box | null => {
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, size, size);
@@ -238,180 +399,21 @@ export function drawCover(
   ctx.restore();
   ctx.letterSpacing = "0px";
   return textBox;
-}
+};
 
-export interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/** Where the advisory label sits on a cover of side `size`. */
-export function labelBox(
-  size: number,
-  state: Pick<CoverState, "labelCorner" | "labelSize">
-): Box {
-  const w = (size * state.labelSize) / 100;
-  const h = w / ADVISORY_ASPECT;
-  const m = size * 0.035;
-  return {
-    h,
-    w,
-    x: state.labelCorner.endsWith("left") ? m : size - m - w,
-    y: state.labelCorner.startsWith("top") ? m : size - m - h,
-  };
-}
-
-const overlaps = (a: Box, b: Box, gap: number) =>
-  a.x < b.x + b.w + gap &&
-  a.x + a.w > b.x - gap &&
-  a.y < b.y + b.h + gap &&
-  a.y + a.h > b.y - gap;
-
-interface TextLine {
-  text: string;
-  font: string;
-  px: number;
-  tracking: number;
-  style: TextStyle;
-  color: string;
-  /** Ink width, without the tracking after the last letter. */
-  width: number;
-  /** Line height, and the baseline's distance from the line's top. */
-  height: number;
-  baseline: number;
-  gapBefore: number;
-}
-
-/**
- * Wraps the title and subtitle for a band from `top` to `bottom`. The title
- * shrinks until every line fits the width and the block fits the band,
- * and never takes more than 70% of the cover's height.
- */
-function layoutText(
-  ctx: Ctx,
-  size: number,
-  state: CoverState,
-  top: number,
-  bottom: number
-) {
-  const maxW = size * 0.88;
-  const measure = (s: string) => ctx.measureText(s).width;
-  const lines = (
-    text: string,
-    font: string,
-    px: number,
-    tracking: number,
-    style: TextStyle,
-    color: string,
-    height: number,
-    baseline: number
-  ): TextLine[] => {
-    ctx.font = font;
-    ctx.letterSpacing = `${tracking}px`;
-    return wrapLines(text, maxW, measure).map((t) => ({
-      baseline,
-      color,
-      font,
-      gapBefore: 0,
-      height,
-      px,
-      style,
-      text: t,
-      tracking,
-      width: measure(t) - tracking,
-    }));
-  };
-
-  let subtitle: TextLine[] = [];
-  if (state.subtitle.trim()) {
-    const px = size * 0.038;
-    subtitle = lines(
-      state.subtitle.trim().toUpperCase(),
-      cssFont(state.subtitleFont, state.subtitleStyle, px),
-      px,
-      size * 0.006,
-      state.subtitleStyle,
-      state.subtitleColor,
-      px * 1.25,
-      px * 1.03
-    );
-  }
-  const gap = subtitle.length ? size * 0.012 : 0;
-  const subtitleHeight = subtitle.reduce((h, l) => h + l.height, 0) + gap;
-
-  let title: TextLine[] = [];
-  if (state.title.trim()) {
-    const room = Math.min(size * 0.7, bottom - top - subtitleHeight);
-    let px = size * 0.124;
-    for (let tries = 0; tries < 30; tries++) {
-      title = lines(
-        state.title.trim(),
-        cssFont(state.titleFont, state.titleStyle, px),
-        px,
-        size * 0.002,
-        state.titleStyle,
-        state.titleColor,
-        px * 0.95,
-        px * 0.87
-      );
-      const tooWide = title.some((l) => l.width > maxW);
-      const tooTall = title.length * px * 0.95 > room;
-      if (!tooWide && !tooTall) {
-        break;
-      }
-      px *= 0.92;
-    }
-    if (subtitle.length) {
-      subtitle[0].gapBefore = gap;
-    }
-  }
-  const all = [...title, ...subtitle];
-  return {
-    h: all.reduce((h, l) => h + l.gapBefore + l.height, 0),
-    lines: all,
-    w: Math.max(...all.map((l) => l.width)),
-  };
-}
-
-/** The block's box at `position`, inside the band from `top` to `bottom`. */
-function placeBlock(
-  block: { w: number; h: number },
-  size: number,
-  position: TextPosition,
-  top: number,
-  bottom: number
-): Box {
-  const [row, column] = position.split("-");
-  const side = size * 0.06;
-  const x =
-    column === "left"
-      ? side
-      : column === "right"
-        ? size - side - block.w
-        : (size - block.w) / 2;
-  const middle = Math.max(
-    top,
-    Math.min(size / 2 - block.h / 2, bottom - block.h)
-  );
-  const y = row === "top" ? top : row === "bottom" ? bottom - block.h : middle;
-  return { h: block.h, w: block.w, x, y };
-}
-
-function roundRect(
+const roundRect = (
   ctx: Ctx,
   x: number,
   y: number,
   w: number,
   h: number,
   r: number
-) {
+) => {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
-}
+};
 
-function fitText(ctx: Ctx, text: string, maxW: number): string {
+const fitText = (ctx: Ctx, text: string, maxW: number): string => {
   if (ctx.measureText(text).width <= maxW) {
     return text;
   }
@@ -420,18 +422,18 @@ function fitText(ctx: Ctx, text: string, maxW: number): string {
     t = t.slice(0, -1);
   }
   return `${t.trimEnd()}…`;
-}
+};
 
 /**
  * A now-playing screen built around the cover, drawn at width `w` and
  * height `w * 4 / 3`. All measurements are in units of a 300 × 400 layout.
  */
-export function drawPlayer(
+export const drawPlayer = (
   ctx: Ctx,
   w: number,
   state: CoverState,
   photo: Photo | null
-) {
+) => {
   const u = w / 300;
   const h = w * (4 / 3);
   const bg = playerColor(state.playerHue);
@@ -557,7 +559,7 @@ export function drawPlayer(
     ctx.fill();
   }
   ctx.restore();
-}
+};
 
 export const PLAYER_ASPECT = 4 / 3;
 
@@ -569,13 +571,13 @@ export const RECORD_ASPECT = 2 / 3;
  * sleeve to the right and the album picture on its centre label. Drawn at
  * width `w` and height `w * RECORD_ASPECT`.
  */
-export function drawRecord(
+export const drawRecord = (
   ctx: Ctx,
   w: number,
   state: CoverState,
   photo: Photo | null,
   background: string
-) {
+) => {
   const h = w * RECORD_ASPECT;
   const side = h * 0.7;
   const r = side * 0.48;
@@ -659,4 +661,4 @@ export function drawRecord(
   drawCover(ctx, side, state, photo);
   ctx.restore();
   ctx.restore();
-}
+};

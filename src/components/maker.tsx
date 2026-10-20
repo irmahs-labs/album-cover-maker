@@ -46,7 +46,7 @@ import { FontPicker } from "./font-picker";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
-function useElementWidth<T extends HTMLElement>(fallback: number) {
+const useElementWidth = <T extends HTMLElement>(fallback: number) => {
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(fallback);
   useEffect(() => {
@@ -61,18 +61,19 @@ function useElementWidth<T extends HTMLElement>(fallback: number) {
     return () => ro.disconnect();
   }, []);
   return [ref, width] as const;
-}
+};
 
-async function loadPhoto(
+const loadPhoto = async (
   file: File
-): Promise<{ photo: Photo; hues: number[]; color: string }> {
+): Promise<{ photo: Photo; hues: number[]; color: string }> => {
   const url = URL.createObjectURL(file);
   try {
     const img = new Image();
     img.src = url;
     await img.decode();
     const sample = document.createElement("canvas");
-    sample.width = sample.height = 48;
+    sample.width = 48;
+    sample.height = 48;
     const ctx = sample.getContext("2d", { willReadFrequently: true });
     let hues = [40];
     let color = BLANK_BACKGROUND;
@@ -98,9 +99,9 @@ async function loadPhoto(
       "That file couldn't be opened as an image. Try a JPEG, PNG or WebP."
     );
   }
-}
+};
 
-function StyleButtons({
+const StyleButtons = ({
   label,
   value,
   onChange,
@@ -108,7 +109,7 @@ function StyleButtons({
   label: string;
   value: TextStyle;
   onChange: (v: TextStyle) => void;
-}) {
+}) => {
   const keys: { key: keyof TextStyle; text: string; name: string }[] = [
     { key: "bold", name: "bold", text: "B" },
     { key: "italic", name: "italic", text: "I" },
@@ -117,6 +118,7 @@ function StyleButtons({
   ];
   return (
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
       role="group"
       aria-label={`${label} font style`}
       className="style-buttons"
@@ -135,9 +137,9 @@ function StyleButtons({
       ))}
     </div>
   );
-}
+};
 
-function HueSlider({
+const HueSlider = ({
   id,
   label,
   hue,
@@ -151,31 +153,29 @@ function HueSlider({
   color: string;
   track: string;
   onChange: (h: number) => void;
-}) {
-  return (
-    <label htmlFor={id} className="field">
-      <span className="field-row">
-        {label}
-        <span className="swatch-value">
-          <span className="swatch" style={{ background: color }} />
-          {color}
-        </span>
+}) => (
+  <label htmlFor={id} className="field">
+    <span className="field-row">
+      {label}
+      <span className="swatch-value">
+        <span className="swatch" style={{ background: color }} />
+        {color}
       </span>
-      <input
-        id={id}
-        className="hue"
-        type="range"
-        min={0}
-        max={360}
-        value={hue}
-        style={{ background: track }}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
+    </span>
+    <input
+      id={id}
+      className="hue"
+      type="range"
+      min={0}
+      max={360}
+      value={hue}
+      style={{ background: track }}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  </label>
+);
 
-function ColorInput({
+const ColorInput = ({
   id,
   label,
   value,
@@ -185,22 +185,20 @@ function ColorInput({
   label: string;
   value: string;
   onChange: (v: string) => void;
-}) {
-  return (
-    <label htmlFor={id} className="color-input" title={`${label}: ${value}`}>
-      <span className="visually-hidden">{label}</span>
-      <input
-        id={id}
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </label>
-  );
-}
+}) => (
+  <label htmlFor={id} className="color-input" title={`${label}: ${value}`}>
+    <span className="visually-hidden">{label}</span>
+    <input
+      id={id}
+      type="color"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  </label>
+);
 
 /** A row of joined buttons where exactly one is chosen. */
-function Segmented<T extends string>({
+const Segmented = <T extends string>({
   label,
   options,
   value,
@@ -215,24 +213,23 @@ function Segmented<T extends string>({
   /** Accessible name for an option, when its text alone is not enough. */
   name?: (option: T) => string;
   onChange: (option: T) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="segmented">
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-label={name?.(option)}
-          aria-pressed={option === value}
-          disabled={disabled}
-          onClick={() => onChange(option)}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  );
-}
+}) => (
+  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
+  <div role="group" aria-label={label} className="segmented">
+    {options.map((option) => (
+      <button
+        key={option}
+        type="button"
+        aria-label={name?.(option)}
+        aria-pressed={option === value}
+        disabled={disabled}
+        onClick={() => onChange(option)}
+      >
+        {option}
+      </button>
+    ))}
+  </div>
+);
 
 const DiceIcon = () => (
   <svg
@@ -340,7 +337,30 @@ const inTextField = (target: EventTarget | null) =>
     (target instanceof HTMLInputElement &&
       ["text", "search", "url", "email"].includes(target.type)));
 
-export function Maker() {
+/** Where a pointer is on the canvas, as fractions of its width and height. */
+const pointAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) / r.width,
+    y: (e.clientY - r.top) / r.height,
+  };
+};
+
+const clampPan = (v: number) => Math.max(-1, Math.min(1, v));
+
+/** The cover preview's cursor class: text to drag, a photo to move, or neither. */
+const coverCursor = (onText: boolean, hasPhoto: boolean) => {
+  if (onText) {
+    return "text-draggable";
+  }
+  return hasPhoto ? "draggable" : undefined;
+};
+
+/** An export button's label, while that export is saving or not. */
+const exportLabel = (busy: Kind | null, kind: Kind, label: string) =>
+  busy === kind ? "Saving…" : label;
+
+export const Maker = () => {
   const [history, dispatch] = useReducer(
     coverHistory,
     DEFAULT_STATE,
@@ -382,7 +402,7 @@ export function Maker() {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [photoHues, setPhotoHues] = useState<number[]>([40]);
   const [photoColor, setPhotoColor] = useState(BLANK_BACKGROUND);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState<Kind | null>(null);
   const [dragOver, setDragOver] = useState(false);
   // While locked, the player and button sliders turn together.
@@ -424,7 +444,7 @@ export function Maker() {
         return;
       }
       if (!file.type.startsWith("image/")) {
-        setError("That isn't an image. Try a JPEG, PNG or WebP.");
+        setErrorMessage("That isn't an image. Try a JPEG, PNG or WebP.");
         return;
       }
       try {
@@ -437,7 +457,7 @@ export function Maker() {
         });
         setPhotoHues(hues);
         setPhotoColor(color);
-        setError(null);
+        setErrorMessage(null);
         // Re-frame the photo and re-apply the chosen combo with its colours,
         // as one step.
         setState((s) => {
@@ -453,7 +473,9 @@ export function Maker() {
           };
         });
       } catch (error) {
-        setError((error as Error).message);
+        // SAFETY: loadPhoto turns every failure to read the file into an
+        // Error with a message for the visitor.
+        setErrorMessage((error as Error).message);
       }
     },
     [setState]
@@ -472,13 +494,6 @@ export function Maker() {
   }, []);
   const [draggingText, setDraggingText] = useState(false);
   const [overText, setOverText] = useState(false);
-  const pointAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return {
-      x: (e.clientX - r.left) / r.width,
-      y: (e.clientY - r.top) / r.height,
-    };
-  };
   const onText = (p: { x: number; y: number }) => {
     const b = textBox.current;
     const pad = 0.02;
@@ -535,12 +550,11 @@ export function Maker() {
     }
     const sx = spare("x");
     const sy = spare("y");
-    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
     setState(
       (s) => ({
         ...s,
-        panX: sx > 0 ? clamp(d.panX + (e.clientX - d.x) / sx) : 0,
-        panY: sy > 0 ? clamp(d.panY + (e.clientY - d.y) / sy) : 0,
+        panX: sx > 0 ? clampPan(d.panX + (e.clientX - d.x) / sx) : 0,
+        panY: sy > 0 ? clampPan(d.panY + (e.clientY - d.y) / sy) : 0,
       }),
       "pan"
     );
@@ -551,23 +565,22 @@ export function Maker() {
   };
   const onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
     const step = e.shiftKey ? 0.2 : 0.05;
-    const moves: Record<string, [number, number]> = {
-      ArrowDown: [0, -step],
-      ArrowLeft: [step, 0],
-      ArrowRight: [-step, 0],
-      ArrowUp: [0, step],
-    };
-    const m = moves[e.key];
+    const moves = new Map<string, [number, number]>([
+      ["ArrowDown", [0, -step]],
+      ["ArrowLeft", [step, 0]],
+      ["ArrowRight", [-step, 0]],
+      ["ArrowUp", [0, step]],
+    ]);
+    const m = moves.get(e.key);
     if (!m || !photo) {
       return;
     }
     e.preventDefault();
-    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
     setState(
       (s) => ({
         ...s,
-        panX: clamp(s.panX + m[0]),
-        panY: clamp(s.panY + m[1]),
+        panX: clampPan(s.panX + m[0]),
+        panY: clampPan(s.panY + m[1]),
       }),
       "pan"
     );
@@ -586,14 +599,16 @@ export function Maker() {
         photo && filterPhoto(photo, state.filter, state.filterStrength);
       await exportImage(kind, state, full, photoColor, `${name}-${file}`);
     } catch (error) {
-      setError((error as Error).message);
-    } finally {
-      setBusy(null);
+      // SAFETY: exportImage throws Errors of its own, and the canvas calls
+      // it makes throw DOMExceptions, which are Errors too.
+      setErrorMessage((error as Error).message);
     }
+    setBusy(null);
   };
 
   const startOver = () => {
     if (
+      // oxlint-disable-next-line no-alert -- the browser's own confirm is the intended check before clearing everything
       !window.confirm("Start over? Your photo and settings will be cleared.")
     ) {
       return;
@@ -606,7 +621,7 @@ export function Maker() {
     });
     setPhotoHues([40]);
     setPhotoColor(BLANK_BACKGROUND);
-    setError(null);
+    setErrorMessage(null);
     dispatch({ type: "reset", value: DEFAULT_STATE });
   };
 
@@ -639,7 +654,7 @@ export function Maker() {
             onClick={() => setState((s) => feelingLucky(s, photoHues))}
           >
             <DiceIcon />
-            I'm feeling lucky
+            I&apos;m feeling lucky
           </button>
           <button type="button" className="pill" onClick={startOver}>
             <RestartIcon />
@@ -650,7 +665,12 @@ export function Maker() {
           <p className="topbar-hint">
             drop in a photo, add your title, export your cover.
           </p>
-          <div role="group" aria-label="History" className="history">
+          <div
+            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
+            role="group"
+            aria-label="History"
+            className="history"
+          >
             <button
               type="button"
               className="pill small"
@@ -677,13 +697,13 @@ export function Maker() {
       </header>
 
       <main className="maker">
-        {error && (
+        {errorMessage && (
           <p role="alert" className="error">
-            {error}
+            {errorMessage}
             <button
               type="button"
               className="pill small"
-              onClick={() => setError(null)}
+              onClick={() => setErrorMessage(null)}
             >
               dismiss
             </button>
@@ -691,6 +711,7 @@ export function Maker() {
         )}
 
         <section aria-label="Preview" className="preview-row">
+          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the panel is where a photo can be dropped; the "choose photo" button is the keyboard way in */}
           <fieldset
             className={`panel cover-panel${dragOver ? " drag-over" : ""}`}
             onDragOver={(e) => {
@@ -713,16 +734,14 @@ export function Maker() {
                   photo={shownPhoto}
                   width={coverWidth}
                   fontsTick={fontsTick}
+                  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                   role="img"
                   aria-label={`Album cover preview: ${state.title} by ${state.subtitle}`}
                   tabIndex={photo ? 0 : -1}
-                  className={
-                    overText || draggingText
-                      ? "text-draggable"
-                      : photo
-                        ? "draggable"
-                        : undefined
-                  }
+                  className={coverCursor(
+                    overText || draggingText,
+                    photo !== null
+                  )}
                   onTextBox={onTextBox}
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
@@ -772,6 +791,7 @@ export function Maker() {
                 width={250}
                 fontsTick={fontsTick}
                 className="player-canvas"
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                 role="img"
                 aria-label="Music player preview using your cover"
               />
@@ -788,13 +808,14 @@ export function Maker() {
                 width={recordWidth}
                 fontsTick={fontsTick}
                 background={photoColor}
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                 role="img"
                 aria-label="Record mock-up: your cover with the record peeking out"
               />
             </div>
             <p className="hint center">
-              The backdrop is your photo's main colour, and the record's label
-              shows the picture.
+              The backdrop is your photo&apos;s main colour, and the
+              record&apos;s label shows the picture.
             </p>
           </fieldset>
         </section>
@@ -871,6 +892,7 @@ export function Maker() {
               <div className="field">
                 <span>Filter</span>
                 <div
+                  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
                   role="group"
                   aria-label="Photo filter"
                   className="filter-grid"
@@ -925,7 +947,7 @@ export function Maker() {
                 disabled={busy !== null}
                 onClick={() => doExport("cover")}
               >
-                {busy === "cover" ? "Saving…" : "Cover"}
+                {exportLabel(busy, "cover", "Cover")}
                 <span>PNG · 3000 × 3000</span>
               </button>
               <button
@@ -934,7 +956,7 @@ export function Maker() {
                 disabled={busy !== null}
                 onClick={() => doExport("player")}
               >
-                {busy === "player" ? "Saving…" : "Player"}
+                {exportLabel(busy, "player", "Player")}
                 <span>PNG · 1080 × 1440</span>
               </button>
               <button
@@ -943,7 +965,7 @@ export function Maker() {
                 disabled={busy !== null}
                 onClick={() => doExport("record")}
               >
-                {busy === "record" ? "Saving…" : "Record"}
+                {exportLabel(busy, "record", "Record")}
                 <span>JPEG · 3000 × 2000</span>
               </button>
               <p className="hint">
@@ -961,6 +983,7 @@ export function Maker() {
                   id="show-text"
                   className="switch"
                   type="checkbox"
+                  // oxlint-disable-next-line jsx-a11y/role-has-required-aria-props -- a native checkbox carries its own checked state, which ARIA in HTML says not to repeat in aria-checked
                   role="switch"
                   checked={state.showText}
                   onChange={(e) => set("showText", e.target.checked)}
@@ -1056,7 +1079,7 @@ export function Maker() {
                 {huesLocked
                   ? "Locked, both sliders move together and keep the same contrast."
                   : "Unlocked, each slider moves on its own."}{" "}
-                The player's text always uses Lato.
+                The player&apos;s text always uses Lato.
               </p>
             </fieldset>
           </div>
@@ -1132,6 +1155,7 @@ export function Maker() {
                   id="pa-show"
                   className="switch"
                   type="checkbox"
+                  // oxlint-disable-next-line jsx-a11y/role-has-required-aria-props -- a native checkbox carries its own checked state, which ARIA in HTML says not to repeat in aria-checked
                   role="switch"
                   checked={state.showLabel}
                   onChange={(e) => set("showLabel", e.target.checked)}
@@ -1142,7 +1166,12 @@ export function Maker() {
                   Label size
                   <span className="muted">{state.labelSize}% of the width</span>
                 </span>
-                <div role="group" aria-label="Label size" className="size-grid">
+                <div
+                  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
+                  role="group"
+                  aria-label="Label size"
+                  className="size-grid"
+                >
                   {LABEL_SIZES.map(({ name, percent }) => (
                     <button
                       key={name}
@@ -1163,6 +1192,7 @@ export function Maker() {
               <div className="field">
                 <span>Position</span>
                 <div
+                  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
                   role="group"
                   aria-label="Label corner"
                   className="corner-grid"
@@ -1195,6 +1225,7 @@ export function Maker() {
             </p>
             <div className="combo-scroll">
               <div
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <ul> would bring list styling to this scrolling row of cards
                 role="list"
                 aria-label="Suggested combos"
                 className="combo-list"
@@ -1205,6 +1236,7 @@ export function Maker() {
                     state.playerHue === sug.playerHue &&
                     state.buttonHue === sug.buttonHue;
                   return (
+                    // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <li> would bring list styling; the list it belongs to is a <div>
                     <div role="listitem" key={sug.combo.id}>
                       <button
                         type="button"
@@ -1246,4 +1278,4 @@ export function Maker() {
       </footer>
     </div>
   );
-}
+};

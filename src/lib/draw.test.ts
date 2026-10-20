@@ -7,10 +7,16 @@ import { drawCover, drawPlayer, drawRecord, photoRect } from "./render";
 import { DEFAULT_STATE } from "./state";
 import type { Corner, CoverState, Photo, TextPosition } from "./state";
 
+// SAFETY: the drawing code only hands images on to ctx.drawImage, and the
+// fake context records them without reading them, so a marker object such
+// as { label: true } can stand in for one.
+const standIn = <T>(name: string): T => ({ [name]: true }) as T;
+
 // The label artwork is an image the browser loads; here it is a stand-in
 // object, and each test decides whether it has "loaded".
-const label = { label: true } as unknown as HTMLImageElement;
+const label = standIn<HTMLImageElement>("label");
 let labelLoaded = true;
+// oxlint-disable-next-line anti-slop/no-module-mocking -- render.ts reads the label artwork from ./advisory, which loads an image file these Node tests can't; the stand-in lets each test choose whether it has loaded
 vi.mock("./advisory", () => ({
   ADVISORY_ASPECT: 1.6,
   advisoryImage: () => (labelLoaded ? label : null),
@@ -25,7 +31,7 @@ const state = (patch: Partial<CoverState> = {}): CoverState => ({
 });
 const photo: Photo = {
   height: 1000,
-  image: { photo: true } as unknown as CanvasImageSource,
+  image: standIn<CanvasImageSource>("photo"),
   name: "p.jpg",
   width: 2000,
 };
@@ -109,6 +115,26 @@ describe("drawCover: parental advisory label", () => {
   });
 });
 
+/** The text lines drawn, top to bottom. */
+const topToBottom = (fake: ReturnType<typeof fakeContext>) => {
+  const lines = fake.texts();
+  lines.sort((a, b) => a.y - b.y);
+  return lines;
+};
+const titleLines = (title: string) =>
+  topToBottom(drawn({ subtitle: "", title }));
+const fits = (line: { text: string; px: number }) =>
+  line.text.length * line.px * 0.5 <= 880;
+// Roughly where a line's capitals reach above its baseline.
+const capTop = (line: { y: number; px: number }) => line.y - line.px * 0.8;
+/** How many rectangles a title with this style fills. */
+const rects = (style: Partial<typeof PLAIN>) =>
+  drawn({
+    showLabel: false,
+    subtitle: "",
+    titleStyle: { ...PLAIN, ...style },
+  }).named("fillRect").length;
+
 describe("drawCover: text", () => {
   it("draws the title above the subtitle, subtitle in capitals", () => {
     const [title, subtitle] = drawn().texts();
@@ -152,14 +178,6 @@ describe("drawCover: text", () => {
     expect(hidden[0].y).toBe(top[0].y);
   });
 
-  // The lines, top to bottom.
-  const titleLines = (title: string) =>
-    drawn({ subtitle: "", title })
-      .texts()
-      .sort((a, b) => a.y - b.y);
-  const fits = (line: { text: string; px: number }) =>
-    line.text.length * line.px * 0.5 <= 880;
-
   it("wraps a long title onto more lines, in reading order", () => {
     const title = "The Very Long Name Of An Album";
     const lines = titleLines(title);
@@ -186,11 +204,9 @@ describe("drawCover: text", () => {
   // A 50% label is 500 × 312.5, 35 in from the edges.
   const longTitle = Array.from({ length: 30 }, () => "Word").join(" ");
   const titleUnderBigLabel = (labelCorner: Corner) =>
-    drawn({ labelCorner, labelSize: 50, subtitle: "", title: longTitle })
-      .texts()
-      .sort((a, b) => a.y - b.y);
-  // Roughly where a line's capitals reach above its baseline.
-  const capTop = (line: { y: number; px: number }) => line.y - line.px * 0.8;
+    topToBottom(
+      drawn({ labelCorner, labelSize: 50, subtitle: "", title: longTitle })
+    );
 
   it("keeps a long title below a 50% label in the same row", () => {
     const lines = titleUnderBigLabel("top-right");
@@ -210,12 +226,6 @@ describe("drawCover: text", () => {
   });
 
   it("draws an underline and a strike line under the styled title", () => {
-    const rects = (style: Partial<typeof PLAIN>) =>
-      drawn({
-        showLabel: false,
-        subtitle: "",
-        titleStyle: { ...PLAIN, ...style },
-      }).named("fillRect").length;
     const plain = rects({});
     expect(rects({ underline: true })).toBe(plain + 1);
     expect(rects({ strike: true })).toBe(plain + 1);
@@ -341,15 +351,15 @@ describe("drawCover: text placement", () => {
   });
 });
 
-describe("drawPlayer", () => {
-  const player = (patch: Partial<CoverState> = {}) => {
-    const fake = fakeContext();
-    drawPlayer(fake.ctx, 300, state(patch), null);
-    return fake;
-  };
+const player = (patch: Partial<CoverState> = {}) => {
+  const fake = fakeContext();
+  drawPlayer(fake.ctx, 300, state(patch), null);
+  return fake;
+};
 
+describe("drawPlayer", () => {
   it("fills the background with the player colour", () => {
-    const first = player({ playerHue: 200 }).named("fillRect")[0];
+    const [first] = player({ playerHue: 200 }).named("fillRect");
     expect(first.args).toEqual([0, 0, 300, 400]);
     expect(first.fillStyle).toBe(playerColor(200));
   });
@@ -373,7 +383,7 @@ describe("drawPlayer", () => {
 
   it("cuts a title too long for the player with an ellipsis", () => {
     const title = "A Title Far Too Long To Fit Under The Little Cover";
-    const line = player({ showText: false, title }).texts()[0];
+    const [line] = player({ showText: false, title }).texts();
     expect(line.text.endsWith("…")).toBe(true);
     expect(line.text.length * line.px * 0.5).toBeLessThanOrEqual(244);
   });
@@ -382,22 +392,22 @@ describe("drawPlayer", () => {
     const fake = player();
     expect(fake.named("translate")[0].args).toEqual([28, 28]);
     // A 10% label on the 244 px cover.
-    const [w, h] = (labelCall(fake)?.args.slice(3) ?? []) as number[];
+    const [w, h] = (labelCall(fake)?.args.slice(3) ?? []).map(Number);
     expect(w).toBeCloseTo(24.4);
     expect(h).toBeCloseTo(15.25);
   });
 });
 
-describe("drawRecord", () => {
-  // 900 × 600: the sleeve is 420 square, the record 201.6 across the middle.
-  const record = (withPhoto: Photo | null = photo) => {
-    const fake = fakeContext();
-    drawRecord(fake.ctx, 900, state(), withPhoto, "#7AACAC");
-    return fake;
-  };
+// 900 × 600: the sleeve is 420 square, the record 201.6 across the middle.
+const record = (withPhoto: Photo | null = photo) => {
+  const fake = fakeContext();
+  drawRecord(fake.ctx, 900, state(), withPhoto, "#7AACAC");
+  return fake;
+};
 
+describe("drawRecord", () => {
   it("fills the backdrop with the colour it is given", () => {
-    const first = record().named("fillRect")[0];
+    const [first] = record().named("fillRect");
     expect(first.args).toEqual([0, 0, 900, 600]);
     expect(first.fillStyle).toBe("#7AACAC");
   });
@@ -428,12 +438,9 @@ describe("drawRecord", () => {
   it("keeps the title and advisory label off the record's label", () => {
     const fake = record();
     // Each is drawn once, on the sleeve.
-    expect(
-      fake
-        .texts()
-        .map((t) => t.text)
-        .sort()
-    ).toEqual(["ALEXA", "Night"]);
+    const texts = fake.texts().map((t) => t.text);
+    texts.sort();
+    expect(texts).toEqual(["ALEXA", "Night"]);
     const labels = fake.named("drawImage").filter((c) => c.args[0] === label);
     expect(labels).toHaveLength(1);
   });

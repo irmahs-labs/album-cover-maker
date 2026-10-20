@@ -55,7 +55,7 @@ describe("suggestCombos", () => {
   });
 
   it("derives colours from the photo hue", () => {
-    const first = suggestCombos([200])[0];
+    const [first] = suggestCombos([200]);
     expect(first.playerHue).toBe((200 + first.combo.playerShift + 360) % 360);
   });
 

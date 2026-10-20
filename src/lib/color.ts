@@ -1,48 +1,55 @@
 export type RGB = [number, number, number];
 
-export function hslToRgb(h: number, s: number, l: number): RGB {
+/** The red, green and blue before lightness, for the 60° sextant `hue` is in. */
+const sextant = (hue: number, c: number, x: number): RGB => {
+  if (hue < 60) {
+    return [c, x, 0];
+  }
+  if (hue < 120) {
+    return [x, c, 0];
+  }
+  if (hue < 180) {
+    return [0, c, x];
+  }
+  if (hue < 240) {
+    return [0, x, c];
+  }
+  if (hue < 300) {
+    return [x, 0, c];
+  }
+  return [c, 0, x];
+};
+
+export const hslToRgb = (h: number, s: number, l: number): RGB => {
   const hue = ((h % 360) + 360) % 360;
   const sat = s / 100;
   const lig = l / 100;
   const c = (1 - Math.abs(2 * lig - 1)) * sat;
   const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
   const m = lig - c / 2;
-  const [r, g, b] =
-    hue < 60
-      ? [c, x, 0]
-      : hue < 120
-        ? [x, c, 0]
-        : hue < 180
-          ? [0, c, x]
-          : hue < 240
-            ? [0, x, c]
-            : hue < 300
-              ? [x, 0, c]
-              : [c, 0, x];
+  const [r, g, b] = sextant(hue, c, x);
   return [
     Math.round((r + m) * 255),
     Math.round((g + m) * 255),
     Math.round((b + m) * 255),
   ];
-}
+};
 
-export function rgbToHex([r, g, b]: RGB): string {
-  return `#${[r, g, b]
+export const rgbToHex = ([r, g, b]: RGB): string =>
+  `#${[r, g, b]
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("")
     .toUpperCase()}`;
-}
 
-export function hslToHex(h: number, s: number, l: number): string {
-  return rgbToHex(hslToRgb(h, s, l));
-}
+export const hslToHex = (h: number, s: number, l: number): string =>
+  rgbToHex(hslToRgb(h, s, l));
 
 /** Returns [hue 0-360, saturation 0-1, lightness 0-1]. */
-export function rgbToHsl(
+export const rgbToHsl = (
   r: number,
   g: number,
   b: number
-): [number, number, number] {
+): [number, number, number] => {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -63,14 +70,15 @@ export function rgbToHsl(
     h = (rn - gn) / d + 4;
   }
   return [h * 60, s, l];
-}
+};
 
 /** Whether a #rrggbb colour is dark enough to want a light shadow behind it. */
-export function isDark(hex: string): boolean {
+export const isDark = (hex: string): boolean => {
   const n = Number.parseInt(hex.slice(1, 7), 16);
+  // oxlint-disable-next-line no-bitwise -- unpacks the red, green and blue bytes of 0xrrggbb
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 100;
-}
+};
 
 /** Player background: a pale tint of the hue. */
 export const playerColor = (hue: number) => hslToHex(hue, 62, 86);
@@ -84,14 +92,14 @@ const BINS = 24;
  * nearly grey, black or white barely count, so a photo's mood colour wins
  * over its shadows. Falls back to `fallback` for a colourless image.
  */
-export function dominantHues(
+export const dominantHues = (
   data: ArrayLike<number>,
   count = 3,
   fallback = 40
-): number[] {
-  const weight = new Array<number>(BINS).fill(0);
-  const sumSin = new Array<number>(BINS).fill(0);
-  const sumCos = new Array<number>(BINS).fill(0);
+): number[] => {
+  const weight = Array.from({ length: BINS }, () => 0);
+  const sumSin = Array.from({ length: BINS }, () => 0);
+  const sumCos = Array.from({ length: BINS }, () => 0);
   for (let i = 0; i + 3 < data.length; i += 4) {
     if (data[i + 3] < 128) {
       continue;
@@ -107,10 +115,8 @@ export function dominantHues(
     sumSin[bin] += Math.sin(rad) * w;
     sumCos[bin] += Math.cos(rad) * w;
   }
-  const bins = weight
-    .map((w, bin) => ({ bin, w }))
-    .filter((b) => b.w > 0)
-    .sort((a, b) => b.w - a.w);
+  const bins = weight.map((w, bin) => ({ bin, w })).filter((b) => b.w > 0);
+  bins.sort((a, b) => b.w - a.w);
   const hues: number[] = [];
   for (const { bin } of bins) {
     const deg =
@@ -129,24 +135,25 @@ export function dominantHues(
     }
   }
   return hues.length ? hues : [fallback];
-}
+};
 
 /**
  * The image's most common colour, as #RRGGBB: pixels are grouped into
  * 512 coarse colour boxes, and the average of the fullest box wins.
  * Falls back to `fallback` for an image with no opaque pixels.
  */
-export function dominantColor(
+export const dominantColor = (
   data: ArrayLike<number>,
   fallback = "#3B4A42"
-): string {
-  const count = new Array<number>(512).fill(0);
+): string => {
+  const count = Array.from({ length: 512 }, () => 0);
   const sums = Array.from({ length: 512 }, () => [0, 0, 0]);
   for (let i = 0; i + 3 < data.length; i += 4) {
     if (data[i + 3] < 128) {
       continue;
     }
     const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+    // oxlint-disable-next-line no-bitwise -- packs the top 3 bits of each channel into a 9-bit box index
     const box = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
     count[box] += 1;
     sums[box][0] += r;
@@ -159,4 +166,4 @@ export function dominantColor(
   }
   const [r, g, b] = sums[top].map((s) => Math.round(s / count[top]));
   return rgbToHex([r, g, b]);
-}
+};

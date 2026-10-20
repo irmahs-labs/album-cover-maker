@@ -27,7 +27,7 @@ const SHIFTS = [
 
 export const COMBOS: Combo[] = PAIRS.map(([titleFont, subtitleFont], i) => {
   // A family paired with itself (Quicksand, Archivo Narrow) uses its bold for the title.
-  const same = titleFont === (subtitleFont as string);
+  const same = titleFont === subtitleFont;
   const [playerShift, buttonShift] = SHIFTS[i % SHIFTS.length];
   return {
     buttonShift,
@@ -54,7 +54,7 @@ const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
  * Turns the photo's hues into combo suggestions, in the listed order. The
  * combos take turns starting from each photo hue, so the list mixes them.
  */
-export function suggestCombos(photoHues: number[]): Suggestion[] {
+export const suggestCombos = (photoHues: number[]): Suggestion[] => {
   const hues = photoHues.length ? photoHues : [40];
   return COMBOS.map((combo, i) => {
     const base = hues[i % hues.length];
@@ -64,4 +64,4 @@ export function suggestCombos(photoHues: number[]): Suggestion[] {
       playerHue: wrap(base + combo.playerShift),
     };
   });
-}
+};

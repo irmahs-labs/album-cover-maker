@@ -32,10 +32,10 @@ export const startHistory = <T>(value: T): History<T> => ({
   present: value,
 });
 
-export function historyReducer<T>(
+export const historyReducer = <T>(
   history: History<T>,
   action: HistoryAction<T>
-): History<T> {
+): History<T> => {
   const { past, present, future } = history;
   switch (action.type) {
     case "set": {
@@ -88,4 +88,4 @@ export function historyReducer<T>(
       return history;
     }
   }
-}
+};

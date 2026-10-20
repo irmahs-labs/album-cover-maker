@@ -1,5 +1,29 @@
 import { deflateSync } from "node:zlib";
 
+// The CRC-32 a PNG chunk ends with: bit maths by definition.
+const crc32 = (data: Buffer) => {
+  let crc = 0xff_ff_ff_ff;
+  for (const byte of data) {
+    // oxlint-disable-next-line no-bitwise -- CRC-32 of a PNG chunk
+    crc ^= byte;
+    for (let k = 0; k < 8; k += 1) {
+      // oxlint-disable-next-line no-bitwise -- CRC-32 of a PNG chunk
+      crc = crc & 1 ? (crc >>> 1) ^ 0xed_b8_83_20 : crc >>> 1;
+    }
+  }
+  // oxlint-disable-next-line no-bitwise -- CRC-32 of a PNG chunk
+  return (crc ^ 0xff_ff_ff_ff) >>> 0;
+};
+
+const chunk = (type: string, data: Buffer) => {
+  const body = Buffer.concat([Buffer.from(type), data]);
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([length, body, crc]);
+};
+
 /**
  * A 600 × 600 test photo made on the fly: a warm orange gradient with a
  * blue disc, so its colours are easy to tell apart from the advisory
@@ -23,14 +47,6 @@ export const testPhoto = () => {
     }
     rows.push(row);
   }
-  const chunk = (type: string, data: Buffer) => {
-    const body = Buffer.concat([Buffer.from(type), data]);
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(data.length);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(body));
-    return Buffer.concat([length, body, crc]);
-  };
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size, 0);
   header.writeUInt32BE(size, 4);
@@ -41,17 +57,6 @@ export const testPhoto = () => {
     chunk("IDAT", deflateSync(Buffer.concat(rows))),
     chunk("IEND", Buffer.alloc(0)),
   ]);
-};
-
-const crc32 = (data: Buffer) => {
-  let crc = 0xff_ff_ff_ff;
-  for (const byte of data) {
-    crc ^= byte;
-    for (let k = 0; k < 8; k += 1) {
-      crc = crc & 1 ? (crc >>> 1) ^ 0xed_b8_83_20 : crc >>> 1;
-    }
-  }
-  return (crc ^ 0xff_ff_ff_ff) >>> 0;
 };
 
 /** Width and height from a PNG's header. */

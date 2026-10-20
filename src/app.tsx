@@ -4,9 +4,9 @@ import { Landing } from "./components/landing";
 import { Maker } from "./components/maker";
 import { usePath } from "./router";
 
-export function App() {
+export const App = () => {
   const path = usePath();
-  const onMaker = path.replace(/\/+$/, "") === "/make";
+  const onMaker = path.replace(/\/+$/u, "") === "/make";
 
   useEffect(() => {
     document.title = onMaker
@@ -15,4 +15,4 @@ export function App() {
   }, [onMaker]);
 
   return onMaker ? <Maker /> : <Landing />;
-}
+};
