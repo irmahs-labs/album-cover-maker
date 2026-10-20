@@ -18,6 +18,7 @@ export const useFontsReady = (state: CoverState): number => {
   const { titleFont, subtitleFont, titleStyle, subtitleStyle } = state;
   useEffect(() => {
     let live = true;
+
     const load = async () => {
       await Promise.all([
         loadFonts([
@@ -28,15 +29,19 @@ export const useFontsReady = (state: CoverState): number => {
         ]),
         loadAdvisory(),
       ]);
+
       if (live) {
         setTick((t) => t + 1);
       }
     };
+
     load();
+
     return () => {
       live = false;
     };
   }, [titleFont, subtitleFont, titleStyle, subtitleStyle]);
+
   return tick;
 };
 
@@ -79,11 +84,13 @@ const draw = (
   if (kind === "cover") {
     return drawCover(ctx, width, state, photo);
   }
+
   if (kind === "player") {
     drawPlayer(ctx, width, state, photo);
   } else {
     drawRecord(ctx, width, state, photo, background);
   }
+
   return null;
 };
 
@@ -103,15 +110,18 @@ export const CoverCanvas = ({
   useEffect(() => {
     const canvas = ref.current;
     const ctx = canvas?.getContext("2d");
+
     if (!canvas || !ctx) {
       return;
     }
+
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const box = draw(ctx, kind, canvas.width, state, photo, background);
+
     if (kind === "cover") {
       const side = canvas.width;
       onTextBox?.(
@@ -149,18 +159,23 @@ export const exportImage = async (
   canvas.width = width;
   canvas.height = Math.round(width * ASPECT[kind]);
   const ctx = canvas.getContext("2d");
+
   if (!ctx) {
     throw new Error("Canvas is not available in this browser.");
   }
+
   await loadAdvisory();
   draw(ctx, kind, width, state, photo, background);
+
   // oxlint-disable-next-line promise/avoid-new -- canvas.toBlob only reports through a callback, so it is wrapped in a promise here
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, type, 0.92);
   });
+
   if (!blob) {
     throw new Error("Could not create the image.");
   }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

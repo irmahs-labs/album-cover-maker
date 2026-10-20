@@ -14,8 +14,10 @@ import type { CoverState } from "./state";
 /** A small seeded generator, so a run of rolls is the same every time. */
 const seeded = (seed: number) => {
   let state = seed;
+
   return () => {
     state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
+
     return state / 2_147_483_648;
   };
 };
@@ -26,8 +28,10 @@ const start: CoverState = {
   title: "Sleepless Nights",
   zoom: 160,
 };
+
 const rolls = (count: number, hues = [200, 20]) => {
   const random = seeded(7);
+
   return Array.from({ length: count }, () => feelingLucky(start, hues, random));
 };
 
@@ -36,6 +40,7 @@ describe("textColors", () => {
     const colors = textColors([200, 20]);
     expect(colors.slice(0, 3)).toEqual(["#fff3cf", "#ffffff", "#1f2420"]);
     expect(colors).toHaveLength(3 + 2 * 3);
+
     for (const c of colors) {
       expect(c).toMatch(/^#[0-9a-f]{6}$/u);
     }
@@ -46,6 +51,7 @@ describe("feelingLucky", () => {
   it("only picks sizes, corners, pairings and colours that exist", () => {
     const sizes: number[] = LABEL_SIZES.map((s) => s.percent);
     const colors = textColors([200, 20]);
+
     for (const s of rolls(200)) {
       expect(sizes).toContain(s.labelSize);
       expect(CORNERS).toContain(s.labelCorner);
@@ -59,6 +65,7 @@ describe("feelingLucky", () => {
       ).toBe(true);
       expect(colors).toContain(s.titleColor);
       expect(colors).toContain(s.subtitleColor);
+
       for (const hue of [s.playerHue, s.buttonHue]) {
         expect(Number.isInteger(hue) && hue >= 0 && hue < 360).toBe(true);
       }
@@ -67,8 +74,10 @@ describe("feelingLucky", () => {
 
   it("gives different results roll after roll", () => {
     const all = rolls(50);
+
     const distinct = (key: keyof CoverState) =>
       new Set(all.map((s) => JSON.stringify(s[key]))).size;
+
     expect(distinct("labelSize")).toBe(LABEL_SIZES.length);
     expect(distinct("labelCorner")).toBe(CORNERS.length);
     expect(distinct("textPosition")).toBe(TEXT_POSITIONS.length);

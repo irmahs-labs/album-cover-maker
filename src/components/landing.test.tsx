@@ -12,15 +12,18 @@ setUpDom();
 describe("landing page", () => {
   it("has no login: no sign-in links or buttons, no password field", () => {
     const { container } = render(<App />);
+
     const actions = [
       ...screen.queryAllByRole("link"),
       ...screen.queryAllByRole("button"),
     ];
+
     for (const el of actions) {
       expect(el.textContent).not.toMatch(
         /log ?in|sign ?in|sign ?up|register/iu
       );
     }
+
     expect(container.querySelector('input[type="password"]')).toBeNull();
     expect(screen.getByText("no login needed")).toBeTruthy();
   });
@@ -45,6 +48,7 @@ describe("landing page", () => {
 
   it("links every call to action to the maker", () => {
     render(<App />);
+
     for (const name of [
       "make a cover",
       "start making",

@@ -15,30 +15,41 @@ setUpDom();
 /** The element with this id, which the test needs to be on the page. */
 const byId = <E extends Element>(id: string) => {
   const el = document.querySelector<E>(`#${id}`);
+
   if (!el) {
     throw new Error(`Nothing on the page has the id ${id}.`);
   }
+
   return el;
 };
+
 const input = (id: string) => byId<HTMLInputElement>(id);
+
 /** The font a menu shows as chosen. */
 const fontOf = (id: string) => byId<HTMLButtonElement>(id).textContent;
+
 const pickFont = async (id: string, name: string) => {
   await userEvent.click(byId<HTMLButtonElement>(id));
   await userEvent.click(screen.getByRole("option", { name }));
 };
+
 const preview = () =>
   screen.getByRole("img", { name: /^Album cover preview/u });
+
 const comboList = () => screen.getByRole("list", { name: "Suggested combos" });
+
 const comboButton = (name: string) => {
   const button = within(comboList())
     .getAllByRole("button")
     .find((b) => b.querySelector(".combo-name")?.textContent === name);
+
   if (!button) {
     throw new Error(`There is no combo named ${name}.`);
   }
+
   return button;
 };
+
 const pressed = (el: HTMLElement) => el.getAttribute("aria-pressed") === "true";
 
 describe("maker: cover text", () => {
@@ -66,9 +77,11 @@ describe("maker: cover text", () => {
     render(<Maker />);
     const group = screen.getByRole("group", { name: "Title font style" });
     const bold = within(group).getByRole("button", { name: "Title bold" });
+
     const strike = within(group).getByRole("button", {
       name: "Title strikethrough",
     });
+
     await userEvent.click(bold);
     await userEvent.click(strike);
     expect(pressed(bold)).toBe(true);
@@ -86,6 +99,7 @@ const groupButtons = (name: string) =>
   within(screen.getByRole("group", { name })).getAllByRole<HTMLButtonElement>(
     "button"
   );
+
 /** Clicks the button with this name in the group with that name. */
 const pick = (groupName: string, name: string) =>
   userEvent.click(
@@ -93,16 +107,19 @@ const pick = (groupName: string, name: string) =>
       name,
     })
   );
+
 /** Picks a spot: its row in one group, its column in the other. */
 const spot = async (row: string, column: string) => {
   await pick("Vertical position", row);
   await pick("Horizontal position", column);
 };
+
 /** The names of the pressed buttons in a group. */
 const pressedIn = (groupName: string) =>
   groupButtons(groupName)
     .filter(pressed)
     .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+
 const textsOf = (groupName: string) =>
   groupButtons(groupName).map((b) => b.textContent);
 
@@ -134,8 +151,10 @@ describe("maker: text placement", () => {
 
   it("explains that the label keeps its corner and the text moves to the middle", async () => {
     render(<Maker />);
+
     const note =
       "The label has the top left corner, so the text sits in the middle left.";
+
     expect(screen.queryByText(note)).toBeNull();
     await spot("top", "left");
     expect(screen.getByText(note)).toBeTruthy();
@@ -157,9 +176,11 @@ describe("maker: text placement", () => {
 
   it("always shows the title in the player, with no switch for it", () => {
     render(<Maker />);
+
     const switches = screen
       .getAllByRole("switch")
       .map((el) => el.closest("label")?.textContent?.trim());
+
     switches.sort();
     expect(switches).toEqual(["Show text on the cover", "Show the label"]);
   });
@@ -167,8 +188,10 @@ describe("maker: text placement", () => {
 
 const titleButton = () => screen.getByRole("button", { name: "Title font" });
 const options = () => screen.getAllByRole("option");
+
 const activeOption = () => {
   const list = screen.getByRole("listbox");
+
   return document.querySelector(
     `#${list.getAttribute("aria-activedescendant")}`
   )?.textContent;
@@ -180,6 +203,7 @@ describe("maker: font menus", () => {
     await userEvent.click(titleButton());
     expect(screen.getByRole("listbox", { name: "Title font" })).toBeTruthy();
     expect(options().map((o) => o.textContent)).toEqual(TITLE_FONTS);
+
     for (const option of options()) {
       expect(option.style.fontFamily).toMatch(
         new RegExp(`^"${option.textContent}",`, "u")
@@ -208,9 +232,11 @@ describe("maker: font menus", () => {
   it("marks the chosen font, and picking one closes the list", async () => {
     render(<Maker />);
     await userEvent.click(titleButton());
+
     const chosen = options().filter(
       (o) => o.getAttribute("aria-selected") === "true"
     );
+
     expect(chosen.map((o) => o.textContent)).toEqual(["Abril Fatface"]);
     await userEvent.click(screen.getByRole("option", { name: "Cinzel" }));
     expect(fontOf("title-font")).toBe("Cinzel");
@@ -279,9 +305,11 @@ describe("maker: combos", () => {
   it("drops the pairing highlight once you pick a font by hand", async () => {
     render(<Maker />);
     await pickFont("title-font", "Ultra");
+
     const highlighted = within(comboList())
       .getAllByRole("button")
       .filter(pressed);
+
     expect(highlighted).toHaveLength(0);
   });
 
@@ -507,8 +535,10 @@ describe("maker: photo filters", () => {
 });
 
 const hue = (id: string) => Number(input(id).value);
+
 const slide = (id: string, value: number) =>
   fireEvent.change(input(id), { target: { value: String(value) } });
+
 const lock = () => screen.getByRole("button", { name: /locked/u });
 
 describe("maker: player colours", () => {
@@ -553,8 +583,10 @@ describe("maker: player colours", () => {
 
 const undoButton = () =>
   screen.getByRole<HTMLButtonElement>("button", { name: "undo" });
+
 const redoButton = () =>
   screen.getByRole<HTMLButtonElement>("button", { name: "redo" });
+
 const sizePressed = () =>
   sizeButtons()
     .filter(pressed)
@@ -587,9 +619,11 @@ describe("maker: undo and redo", () => {
 
   it("undoes each lucky roll on its own", async () => {
     render(<Maker />);
+
     const luckyButton = screen.getByRole("button", {
       name: "I'm feeling lucky",
     });
+
     vi.spyOn(Math, "random").mockReturnValue(0);
     await userEvent.click(luckyButton);
     vi.spyOn(Math, "random").mockReturnValue(0.99);

@@ -69,6 +69,7 @@ describe("placedText", () => {
         placedText({ labelCorner: "top-left", showLabel: false, textPosition })
       ).toBe(textPosition);
     }
+
     expect(
       placedText({
         labelCorner: "top-left",

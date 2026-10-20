@@ -21,6 +21,7 @@ export type HistoryAction<T> =
 
 /** How many steps back undo can go. */
 export const HISTORY_LIMIT = 100;
+
 /** Changes to one setting closer together than this are one step. */
 export const MERGE_MS = 1000;
 
@@ -37,16 +38,20 @@ export const historyReducer = <T>(
   action: HistoryAction<T>
 ): History<T> => {
   const { past, present, future } = history;
+
   switch (action.type) {
     case "set": {
       const next = action.update(present);
+
       if (next === present) {
         return history;
       }
+
       const merge =
         action.group !== undefined &&
         action.group === history.group &&
         action.now - history.at < MERGE_MS;
+
       return {
         at: action.now,
         future: [],
@@ -55,11 +60,14 @@ export const historyReducer = <T>(
         present: next,
       };
     }
+
     case "undo": {
       const previous = past.at(-1);
+
       if (previous === undefined) {
         return history;
       }
+
       return {
         at: 0,
         future: [present, ...future],
@@ -68,11 +76,14 @@ export const historyReducer = <T>(
         present: previous,
       };
     }
+
     case "redo": {
       const [next, ...rest] = future;
+
       if (next === undefined) {
         return history;
       }
+
       return {
         at: 0,
         future: rest,
@@ -81,9 +92,11 @@ export const historyReducer = <T>(
         present: next,
       };
     }
+
     case "reset": {
       return startHistory(action.value);
     }
+
     default: {
       return history;
     }

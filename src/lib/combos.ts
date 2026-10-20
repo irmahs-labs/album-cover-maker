@@ -29,6 +29,7 @@ export const COMBOS: Combo[] = PAIRS.map(([titleFont, subtitleFont], i) => {
   // A family paired with itself (Quicksand, Archivo Narrow) uses its bold for the title.
   const same = titleFont === subtitleFont;
   const [playerShift, buttonShift] = SHIFTS[i % SHIFTS.length];
+
   return {
     buttonShift,
     id: `${titleFont}-${subtitleFont}`
@@ -56,8 +57,10 @@ const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
  */
 export const suggestCombos = (photoHues: number[]): Suggestion[] => {
   const hues = photoHues.length ? photoHues : [40];
+
   return COMBOS.map((combo, i) => {
     const base = hues[i % hues.length];
+
     return {
       buttonHue: wrap(base + combo.buttonShift),
       combo,

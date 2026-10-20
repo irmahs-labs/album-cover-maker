@@ -45,11 +45,13 @@ export const PAIRS = [
 ] as const;
 
 export type TitleFont = (typeof PAIRS)[number][0];
+
 export type SubtitleFont = (typeof PAIRS)[number][1];
 
 const unique = <T>(list: T[]) => [...new Set(list)];
 
 export const TITLE_FONTS: TitleFont[] = unique(PAIRS.map(([title]) => title));
+
 export const SUBTITLE_FONTS: SubtitleFont[] = unique(
   PAIRS.map(([, subtitle]) => subtitle)
 );
@@ -116,6 +118,7 @@ export const cssFont = (
   px: number
 ): string => {
   const f = fontStyle(family, style);
+
   return `${style.italic ? "italic " : ""}${f.fontWeight} ${px}px ${f.fontFamily}`;
 };
 
@@ -128,5 +131,6 @@ export const loadFonts = async (specs: string[]): Promise<void> => {
   if (typeof document === "undefined" || !document.fonts) {
     return;
   }
+
   await Promise.all(specs.map((s) => document.fonts.load(s).catch(() => [])));
 };

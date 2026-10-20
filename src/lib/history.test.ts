@@ -9,15 +9,20 @@ import {
 import type { History, HistoryAction } from "./history";
 
 type H = History<number>;
+
 const run = (h: H, ...actions: HistoryAction<number>[]) => {
   let history = h;
+
   for (const action of actions) {
     history = historyReducer(history, action);
   }
+
   return history;
 };
+
 const set = (value: number, group?: string, now = 0) =>
   ({ group, now, type: "set", update: () => value }) as const;
+
 const undo = { type: "undo" } as const;
 const redo = { type: "redo" } as const;
 
@@ -45,6 +50,7 @@ describe("history", () => {
       set(2, "title", MERGE_MS - 1),
       set(3, "title", 2 * MERGE_MS - 2)
     );
+
     expect(h.past).toEqual([0]);
     expect(run(h, undo).present).toBe(0);
   });
@@ -54,11 +60,13 @@ describe("history", () => {
     expect(slow.past).toEqual([0, 1]);
     const other = run(startHistory(0), set(1, "a", 0), set(2, "b", 10));
     expect(other.past).toEqual([0, 1]);
+
     const plain = run(
       startHistory(0),
       set(1, undefined, 0),
       set(2, undefined, 1)
     );
+
     expect(plain.past).toEqual([0, 1]);
   });
 
@@ -78,6 +86,7 @@ describe("history", () => {
     const changes = Array.from({ length: HISTORY_LIMIT + 20 }, (_, i) =>
       set(i + 1)
     );
+
     const h = run(startHistory(0), ...changes);
     expect(h.past).toHaveLength(HISTORY_LIMIT);
     expect(h.past[0]).toBe(20);
@@ -88,6 +97,7 @@ describe("history", () => {
       type: "reset",
       value: 9,
     });
+
     expect(h).toEqual(startHistory(9));
   });
 });
