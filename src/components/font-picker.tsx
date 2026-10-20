@@ -38,12 +38,15 @@ export const FontPicker = <F extends string>({
     setActive(Math.max(0, index ?? fonts.indexOf(value)));
     setOpen(true);
   };
+
   const close = (refocus: boolean) => {
     setOpen(false);
+
     if (refocus) {
       button.current?.focus();
     }
   };
+
   const choose = (i: number) => {
     onChange(fonts[i]);
     close(true);
@@ -66,13 +69,16 @@ export const FontPicker = <F extends string>({
     if (!open) {
       return;
     }
+
     const away = (e: PointerEvent) => {
       // SAFETY: a pointerdown on the document always targets a DOM node.
       if (!root.current?.contains(e.target as Node)) {
         setOpen(false);
       }
     };
+
     document.addEventListener("pointerdown", away);
+
     return () => document.removeEventListener("pointerdown", away);
   }, [open]);
 
@@ -86,6 +92,7 @@ export const FontPicker = <F extends string>({
     const start = t.text.length > 1 ? active : active + 1;
     const order = [...fonts.slice(start), ...fonts.slice(0, start)];
     const hit = order.find((f) => f.toLowerCase().startsWith(t.text));
+
     if (hit) {
       setActive(fonts.indexOf(hit));
     }
@@ -93,6 +100,7 @@ export const FontPicker = <F extends string>({
 
   const onListKey = (e: React.KeyboardEvent) => {
     const last = fonts.length - 1;
+
     const moves = new Map([
       ["ArrowDown", Math.min(last, active + 1)],
       ["ArrowUp", Math.max(0, active - 1)],
@@ -101,7 +109,9 @@ export const FontPicker = <F extends string>({
       ["PageDown", Math.min(last, active + 8)],
       ["PageUp", Math.max(0, active - 8)],
     ]);
+
     const move = moves.get(e.key);
+
     if (move !== undefined) {
       e.preventDefault();
       setActive(move);

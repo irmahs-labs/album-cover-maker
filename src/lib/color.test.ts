@@ -33,6 +33,7 @@ const lum = (hex: string) => {
   const c = [1, 3, 5]
     .map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255)
     .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+
   return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 };
 
@@ -58,6 +59,7 @@ describe("dominantHues", () => {
       [255, 0, 0, 20],
       [128, 128, 128, 500]
     );
+
     const hues = dominantHues(data, 3);
     expect(hues[0]).toBe(240);
     expect(hues[1]).toBe(0);
@@ -79,6 +81,7 @@ describe("dominantColor", () => {
       [40, [124, 174, 174, 255]],
       [70, [230, 120, 40, 255]]
     );
+
     // The two teals share a box and outnumber the orange: 60 × 120 and
     // 40 × 124 average to 122 (7A), and 170 and 174 to 172 (AC).
     expect(dominantColor(data)).toBe("#7AACAC");

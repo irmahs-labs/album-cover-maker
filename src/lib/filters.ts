@@ -83,6 +83,7 @@ export const cssFilter = (id: FilterId, strength = 1): string => {
   const parts = scaled(id, strength).map(([op, a]) =>
     op === "hue-rotate" ? `hue-rotate(${a}deg)` : `${op}(${a})`
   );
+
   return parts.length ? parts.join(" ") : "none";
 };
 
@@ -113,6 +114,7 @@ const opMatrix = (op: Op, a: number): Matrix => {
   switch (op) {
     case "grayscale": {
       const k = 1 - Math.min(1, a);
+
       return rgbMatrix([
         0.2126 + 0.7874 * k,
         0.7152 - 0.7152 * k,
@@ -125,8 +127,10 @@ const opMatrix = (op: Op, a: number): Matrix => {
         0.0722 + 0.9278 * k,
       ]);
     }
+
     case "sepia": {
       const k = 1 - Math.min(1, a);
+
       return rgbMatrix([
         0.393 + 0.607 * k,
         0.769 - 0.769 * k,
@@ -139,6 +143,7 @@ const opMatrix = (op: Op, a: number): Matrix => {
         0.131 + 0.869 * k,
       ]);
     }
+
     case "saturate": {
       return rgbMatrix([
         0.213 + 0.787 * a,
@@ -152,9 +157,11 @@ const opMatrix = (op: Op, a: number): Matrix => {
         0.072 + 0.928 * a,
       ]);
     }
+
     case "hue-rotate": {
       const r = (a * Math.PI) / 180;
       const [c, s] = [Math.cos(r), Math.sin(r)];
+
       return rgbMatrix([
         0.213 + c * 0.787 - s * 0.213,
         0.715 - c * 0.715 - s * 0.715,
@@ -167,13 +174,17 @@ const opMatrix = (op: Op, a: number): Matrix => {
         0.072 + c * 0.928 + s * 0.072,
       ]);
     }
+
     case "brightness": {
       return [a, 0, 0, 0, 0, a, 0, 0, 0, 0, a, 0];
     }
+
     case "contrast": {
       const o = 127.5 * (1 - a);
+
       return [a, 0, 0, o, 0, a, 0, o, 0, 0, a, o];
     }
+
     default: {
       return IDENTITY_MATRIX;
     }
@@ -183,24 +194,30 @@ const opMatrix = (op: Op, a: number): Matrix => {
 /** `a` applied after `b`. */
 const compose = (a: Matrix, b: Matrix): Matrix => {
   const out: Matrix = [];
+
   for (let i = 0; i < 3; i += 1) {
     for (let j = 0; j < 4; j += 1) {
       let v = j === 3 ? a[i * 4 + 3] : 0;
+
       for (let k = 0; k < 3; k += 1) {
         v += a[i * 4 + k] * b[k * 4 + j];
       }
+
       out.push(v);
     }
   }
+
   return out;
 };
 
 /** The whole filter at `strength` (0–1) as one matrix. */
 export const filterMatrix = (id: FilterId, strength = 1): Matrix => {
   let m = IDENTITY_MATRIX;
+
   for (const [op, a] of scaled(id, strength)) {
     m = compose(opMatrix(op, a), m);
   }
+
   return m;
 };
 

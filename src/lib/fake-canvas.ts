@@ -19,12 +19,15 @@ const noop = () => {
 
 export const fakeContext = () => {
   const calls: Call[] = [];
+
   // The properties the drawing code has set, from the canvas defaults on.
   const props = new Map<string, unknown>([
     ["fillStyle", "#000"],
     ["font", "10px sans-serif"],
   ]);
+
   const font = () => String(props.get("font"));
+
   // SAFETY: the proxy answers every member a CanvasRenderingContext2D has:
   // properties from props, measureText, gradients, and a recording function
   // for any other method.
@@ -37,12 +40,15 @@ export const fakeContext = () => {
             width: text.length * fontPx(font()) * 0.5,
           });
         }
+
         if (props.has(key)) {
           return props.get(key);
         }
+
         if (key.startsWith("create") && key.endsWith("Gradient")) {
           return () => ({ addColorStop: noop });
         }
+
         return (...args: unknown[]) => {
           calls.push({
             args,
@@ -54,12 +60,14 @@ export const fakeContext = () => {
       },
       set(_target, key: string, value) {
         props.set(key, value);
+
         return true;
       },
     }
   ) as CanvasRenderingContext2D;
 
   const named = (name: string) => calls.filter((c) => c.name === name);
+
   /** Every fillText, as { text, x, y, px }. */
   const texts = () =>
     named("fillText").map((c) => ({

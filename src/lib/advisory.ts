@@ -12,9 +12,11 @@ export const advisoryImage = () => image;
 const load = async () => {
   const img = new Image();
   img.src = labelUrl;
+
   try {
     await img.decode();
     image = img;
+
     return img;
   } catch {
     return null;
@@ -24,5 +26,6 @@ const load = async () => {
 /** Loads the label artwork once. Resolves to null if it fails; never rejects. */
 export const loadAdvisory = () => {
   loading ??= load();
+
   return loading;
 };

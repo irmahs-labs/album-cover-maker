@@ -51,15 +51,20 @@ const useElementWidth = <T extends HTMLElement>(fallback: number) => {
   const [width, setWidth] = useState(fallback);
   useEffect(() => {
     const el = ref.current;
+
     if (!el) {
       return;
     }
+
     const ro = new ResizeObserver(([entry]) =>
       setWidth(Math.max(1, Math.round(entry.contentRect.width)))
     );
+
     ro.observe(el);
+
     return () => ro.disconnect();
   }, []);
+
   return [ref, width] as const;
 };
 
@@ -67,6 +72,7 @@ const loadPhoto = async (
   file: File
 ): Promise<{ photo: Photo; hues: number[]; color: string }> => {
   const url = URL.createObjectURL(file);
+
   try {
     const img = new Image();
     img.src = url;
@@ -77,12 +83,14 @@ const loadPhoto = async (
     const ctx = sample.getContext("2d", { willReadFrequently: true });
     let hues = [40];
     let color = BLANK_BACKGROUND;
+
     if (ctx) {
       ctx.drawImage(img, 0, 0, 48, 48);
       const { data } = ctx.getImageData(0, 0, 48, 48);
       hues = dominantHues(data, 3);
       color = dominantColor(data, BLANK_BACKGROUND);
     }
+
     return {
       color,
       hues,
@@ -116,6 +124,7 @@ const StyleButtons = ({
     { key: "underline", name: "underline", text: "U" },
     { key: "strike", name: "strikethrough", text: "S" },
   ];
+
   return (
     <div
       // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
@@ -316,9 +325,11 @@ const RestartIcon = () => (
 const ROWS = ["top", "middle", "bottom"] as const;
 const COLUMNS = ["left", "center", "right"] as const;
 const third = (v: number) => Math.min(2, Math.max(0, Math.floor(v * 3)));
+
 /** The text spot under a point given as fractions of the cover's side. */
 const spotAt = (p: { x: number; y: number }) =>
   `${ROWS[third(p.y)]}-${COLUMNS[third(p.x)]}` as const;
+
 const spotName = (spot: string) => spot.replace("-", " ");
 
 const hueTrack = (s: number, l: number) =>
@@ -340,6 +351,7 @@ const inTextField = (target: EventTarget | null) =>
 /** Where a pointer is on the canvas, as fractions of its width and height. */
 const pointAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
   const r = e.currentTarget.getBoundingClientRect();
+
   return {
     x: (e.clientX - r.left) / r.width,
     y: (e.clientY - r.top) / r.height,
@@ -353,6 +365,7 @@ const coverCursor = (onText: boolean, hasPhoto: boolean) => {
   if (onText) {
     return "text-draggable";
   }
+
   return hasPhoto ? "draggable" : undefined;
 };
 
@@ -366,7 +379,9 @@ export const Maker = () => {
     DEFAULT_STATE,
     startHistory
   );
+
   const state = history.present;
+
   /**
    * Changes the settings. Changes with the same `group` in quick
    * succession (a word typed, a slider dragged) undo as one step.
@@ -376,16 +391,20 @@ export const Maker = () => {
       dispatch({ group, now: Date.now(), type: "set", update }),
     []
   );
+
   const undo = useCallback(() => dispatch({ type: "undo" }), []);
   const redo = useCallback(() => dispatch({ type: "redo" }), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+
       if (!(e.metaKey || e.ctrlKey) || e.altKey || inTextField(e.target)) {
         return;
       }
+
       if (key === "z") {
         e.preventDefault();
+
         if (e.shiftKey) {
           redo();
         } else {
@@ -396,7 +415,9 @@ export const Maker = () => {
         redo();
       }
     };
+
     window.addEventListener("keydown", onKey);
+
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -407,14 +428,18 @@ export const Maker = () => {
   const [dragOver, setDragOver] = useState(false);
   // While locked, the player and button sliders turn together.
   const [huesLocked, setHuesLocked] = useState(true);
+
   const setHue = (which: "playerHue" | "buttonHue", hue: number) =>
     setState((s) => {
       const other = which === "playerHue" ? "buttonHue" : "playerHue";
+
       const turned = huesLocked
         ? { [other]: wrapHue(s[other] + hue - s[which]) }
         : {};
+
       return { ...s, ...turned, comboId: null, [which]: hue };
     }, "hues");
+
   const fileInput = useRef<HTMLInputElement>(null);
   const fontsTick = useFontsReady(state);
   const [coverBox, coverWidth] = useElementWidth<HTMLDivElement>(500);
@@ -427,6 +452,7 @@ export const Maker = () => {
   );
 
   const suggestions = useMemo(() => suggestCombos(photoHues), [photoHues]);
+
   // The photo as the previews show it: filtered, at most 1600 px across.
   const shownPhoto = useMemo(
     () => photo && filterPhoto(photo, state.filter, state.filterStrength, 1600),
@@ -443,16 +469,20 @@ export const Maker = () => {
       if (!file) {
         return;
       }
+
       if (!file.type.startsWith("image/")) {
         setErrorMessage("That isn't an image. Try a JPEG, PNG or WebP.");
+
         return;
       }
+
       try {
         const { photo: next, hues, color } = await loadPhoto(file);
         setPhoto((prev) => {
           if (prev?.image instanceof HTMLImageElement) {
             URL.revokeObjectURL(prev.image.src);
           }
+
           return next;
         });
         setPhotoHues(hues);
@@ -464,6 +494,7 @@ export const Maker = () => {
           const current =
             suggestCombos(hues).find((x) => x.combo.id === s.comboId) ??
             suggestCombos(hues)[0];
+
           return {
             ...s,
             ...comboSettings(current),
@@ -488,15 +519,20 @@ export const Maker = () => {
     | { kind: "text" }
     | null
   >(null);
+
   const textBox = useRef<Box | null>(null);
+
   const onTextBox = useCallback((box: Box | null) => {
     textBox.current = box;
   }, []);
+
   const [draggingText, setDraggingText] = useState(false);
   const [overText, setOverText] = useState(false);
+
   const onText = (p: { x: number; y: number }) => {
     const b = textBox.current;
     const pad = 0.02;
+
     return (
       b !== null &&
       p.x >= b.x - pad &&
@@ -505,23 +541,30 @@ export const Maker = () => {
       p.y <= b.y + b.h + pad
     );
   };
+
   const spare = (axis: "x" | "y") => {
     if (!photo) {
       return 0;
     }
+
     const r = photoRect(photo, coverWidth, state.zoom, 0, 0);
+
     return ((axis === "x" ? r.w : r.h) - coverWidth) / 2;
   };
+
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (onText(pointAt(e))) {
       e.currentTarget.setPointerCapture(e.pointerId);
       drag.current = { kind: "text" };
       setDraggingText(true);
+
       return;
     }
+
     if (!photo) {
       return;
     }
+
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = {
       kind: "photo",
@@ -531,23 +574,30 @@ export const Maker = () => {
       y: e.clientY,
     };
   };
+
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const d = drag.current;
+
     if (!d) {
       const over = onText(pointAt(e));
+
       if (over !== overText) {
         setOverText(over);
       }
+
       return;
     }
+
     if (d.kind === "text") {
       const spot = spotAt(pointAt(e));
       setState(
         (s) => (s.textPosition === spot ? s : { ...s, textPosition: spot }),
         "textPosition"
       );
+
       return;
     }
+
     const sx = spare("x");
     const sy = spare("y");
     setState(
@@ -559,22 +609,28 @@ export const Maker = () => {
       "pan"
     );
   };
+
   const onPointerUp = () => {
     drag.current = null;
     setDraggingText(false);
   };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
     const step = e.shiftKey ? 0.2 : 0.05;
+
     const moves = new Map<string, [number, number]>([
       ["ArrowDown", [0, -step]],
       ["ArrowLeft", [step, 0]],
       ["ArrowRight", [-step, 0]],
       ["ArrowUp", [0, step]],
     ]);
+
     const m = moves.get(e.key);
+
     if (!m || !photo) {
       return;
     }
+
     e.preventDefault();
     setState(
       (s) => ({
@@ -588,21 +644,26 @@ export const Maker = () => {
 
   const doExport = async (kind: Kind) => {
     setBusy(kind);
+
     try {
       const name = slug(`${state.title} ${state.subtitle}`);
+
       const file = {
         cover: "cover-3000.png",
         player: "player-1080x1440.png",
         record: "record-3000x2000.jpeg",
       }[kind];
+
       const full =
         photo && filterPhoto(photo, state.filter, state.filterStrength);
+
       await exportImage(kind, state, full, photoColor, `${name}-${file}`);
     } catch (error) {
       // SAFETY: exportImage throws Errors of its own, and the canvas calls
       // it makes throw DOMExceptions, which are Errors too.
       setErrorMessage((error as Error).message);
     }
+
     setBusy(null);
   };
 
@@ -613,10 +674,12 @@ export const Maker = () => {
     ) {
       return;
     }
+
     setPhoto((prev) => {
       if (prev?.image instanceof HTMLImageElement) {
         URL.revokeObjectURL(prev.image.src);
       }
+
       return null;
     });
     setPhotoHues([40]);
@@ -626,11 +689,13 @@ export const Maker = () => {
   };
 
   const smallPhoto = photo && Math.min(photo.width, photo.height) < 3000;
+
   // The bare photo, framed as on the cover, for the thumbnails.
   const thumbState = useMemo(
     () => ({ ...state, showLabel: false, showText: false }),
     [state]
   );
+
   // SAFETY: a TextPosition is always "<row>-<column>".
   const [row, column] = state.textPosition.split("-") as [
     (typeof ROWS)[number],
@@ -1235,6 +1300,7 @@ export const Maker = () => {
                     state.comboId === sug.combo.id &&
                     state.playerHue === sug.playerHue &&
                     state.buttonHue === sug.buttonHue;
+
                   return (
                     // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <li> would bring list styling; the list it belongs to is a <div>
                     <div role="listitem" key={sug.combo.id}>

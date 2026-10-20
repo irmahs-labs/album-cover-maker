@@ -21,6 +21,7 @@ const textShadow = (ctx: Ctx, color: string) => {
     ? "rgba(255, 255, 255, 0.4)"
     : "rgba(0, 0, 0, 0.5)";
 };
+
 const GOLD = "#f2d27a";
 
 /** Greedy word wrap. Words longer than `maxWidth` stay on their own line. */
@@ -30,11 +31,14 @@ export const wrapLines = (
   measure: (s: string) => number
 ): string[] => {
   const lines: string[] = [];
+
   for (const para of text.split("\n")) {
     const words = para.split(/\s+/u).filter(Boolean);
     let line = "";
+
     for (const word of words) {
       const next = line ? `${line} ${word}` : word;
+
       if (line && measure(next) > maxWidth) {
         lines.push(line);
         line = word;
@@ -42,10 +46,12 @@ export const wrapLines = (
         line = next;
       }
     }
+
     if (line) {
       lines.push(line);
     }
   }
+
   return lines;
 };
 
@@ -61,8 +67,10 @@ export const photoRect = (
 ) => {
   const scale =
     Math.max(size / photo.width, size / photo.height) * (zoom / 100);
+
   const w = photo.width * scale;
   const h = photo.height * scale;
+
   return {
     h,
     w,
@@ -79,12 +87,14 @@ const drawPlaceholder = (ctx: Ctx, size: number) => {
   ctx.lineWidth = Math.max(1, size / 500);
   const step = size / 40;
   ctx.beginPath();
+
   for (let p = step; p < size; p += step) {
     ctx.moveTo(p, 0);
     ctx.lineTo(p, size);
     ctx.moveTo(0, p);
     ctx.lineTo(size, p);
   }
+
   ctx.stroke();
   const cx = size * 0.62;
   const cy = size * 0.4;
@@ -93,11 +103,13 @@ const drawPlaceholder = (ctx: Ctx, size: number) => {
   ctx.arc(cx, cy, size * 0.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = BARK_GRID;
+
   for (const r of [0.26, 0.22, 0.18, 0.14]) {
     ctx.beginPath();
     ctx.arc(cx, cy, size * r, 0, Math.PI * 2);
     ctx.stroke();
   }
+
   ctx.fillStyle = SURFACE;
   ctx.strokeStyle = INK;
   ctx.lineWidth = size / 160;
@@ -114,6 +126,7 @@ const drawPlaceholder = (ctx: Ctx, size: number) => {
   const fy = size * 0.18;
   const pr = size * 0.045;
   ctx.lineWidth = size / 250;
+
   for (let i = 0; i < 5; i += 1) {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
     ctx.fillStyle = CREAM;
@@ -128,6 +141,7 @@ const drawPlaceholder = (ctx: Ctx, size: number) => {
     ctx.fill();
     ctx.stroke();
   }
+
   ctx.fillStyle = GOLD;
   ctx.beginPath();
   ctx.arc(fx, fy, pr * 0.85, 0, Math.PI * 2);
@@ -149,14 +163,18 @@ const drawStyledText = (
 ) => {
   ctx.letterSpacing = `${tracking}px`;
   ctx.fillText(text, x, baseline);
+
   if (!style.underline && !style.strike) {
     return;
   }
+
   const width = ctx.measureText(text).width - tracking;
   const thick = Math.max(1, px * 0.06);
+
   if (style.underline) {
     ctx.fillRect(x, baseline + px * 0.1, width, thick);
   }
+
   if (style.strike) {
     ctx.fillRect(x, baseline - px * 0.32, width, thick);
   }
@@ -177,6 +195,7 @@ export const labelBox = (
   const w = (size * state.labelSize) / 100;
   const h = w / ADVISORY_ASPECT;
   const m = size * 0.035;
+
   return {
     h,
     w,
@@ -220,6 +239,7 @@ const layoutText = (
 ) => {
   const maxW = size * 0.88;
   const measure = (s: string) => ctx.measureText(s).width;
+
   const lines = (
     text: string,
     font: string,
@@ -232,6 +252,7 @@ const layoutText = (
   ): TextLine[] => {
     ctx.font = font;
     ctx.letterSpacing = `${tracking}px`;
+
     return wrapLines(text, maxW, measure).map((t) => ({
       baseline,
       color,
@@ -247,6 +268,7 @@ const layoutText = (
   };
 
   let subtitle: TextLine[] = [];
+
   if (state.subtitle.trim()) {
     const px = size * 0.038;
     subtitle = lines(
@@ -260,13 +282,16 @@ const layoutText = (
       px * 1.03
     );
   }
+
   const gap = subtitle.length ? size * 0.012 : 0;
   const subtitleHeight = subtitle.reduce((h, l) => h + l.height, 0) + gap;
 
   let title: TextLine[] = [];
+
   if (state.title.trim()) {
     const room = Math.min(size * 0.7, bottom - top - subtitleHeight);
     let px = size * 0.124;
+
     for (let tries = 0; tries < 30; tries += 1) {
       title = lines(
         state.title.trim(),
@@ -280,16 +305,21 @@ const layoutText = (
       );
       const tooWide = title.some((l) => l.width > maxW);
       const tooTall = title.length * px * 0.95 > room;
+
       if (!tooWide && !tooTall) {
         break;
       }
+
       px *= 0.92;
     }
+
     if (subtitle.length) {
       subtitle[0].gapBefore = gap;
     }
   }
+
   const all = [...title, ...subtitle];
+
   return {
     h: all.reduce((h, l) => h + l.gapBefore + l.height, 0),
     lines: all,
@@ -308,17 +338,21 @@ const placeBlock = (
   const [row, column] = position.split("-");
   const side = size * 0.06;
   let x = (size - block.w) / 2;
+
   if (column === "left") {
     x = side;
   } else if (column === "right") {
     x = size - side - block.w;
   }
+
   let y = Math.max(top, Math.min(size / 2 - block.h / 2, bottom - block.h));
+
   if (row === "top") {
     y = top;
   } else if (row === "bottom") {
     y = bottom - block.h;
   }
+
   return { h: block.h, w: block.w, x, y };
 };
 
@@ -336,6 +370,7 @@ export const drawCover = (
   ctx.beginPath();
   ctx.rect(0, 0, size, size);
   ctx.clip();
+
   if (photo) {
     ctx.fillStyle = INK;
     ctx.fillRect(0, 0, size, size);
@@ -349,11 +384,13 @@ export const drawCover = (
   // The label is skipped for the moment it takes to load; exports wait for it.
   const label = labelBox(size, state);
   const labelArt = advisoryImage();
+
   if (state.showLabel && labelArt) {
     ctx.drawImage(labelArt, label.x, label.y, label.w, label.h);
   }
 
   let textBox: Box | null = null;
+
   if (state.showText && (state.title.trim() || state.subtitle.trim())) {
     ctx.shadowOffsetY = size * 0.004;
     ctx.shadowBlur = size * 0.024;
@@ -365,24 +402,29 @@ export const drawCover = (
     let block = layoutText(ctx, size, state, size * 0.05, size * 0.95);
     let box = placeBlock(block, size, position, size * 0.05, size * 0.95);
     const gap = size * 0.02;
+
     if (state.showLabel && overlaps(box, label, gap)) {
       const [top, bottom] =
         label.y < size / 2
           ? [label.y + label.h + gap, size * 0.95]
           : [size * 0.05, label.y - gap];
+
       block = layoutText(ctx, size, state, top, bottom);
       box = placeBlock(block, size, position, top, bottom);
     }
 
     let { y } = box;
+
     for (const line of block.lines) {
       y += line.gapBefore;
       ctx.font = line.font;
       textShadow(ctx, line.color);
+
       const shift =
         state.textAlign === "left"
           ? 0
           : (box.w - line.width) / (state.textAlign === "center" ? 2 : 1);
+
       drawStyledText(
         ctx,
         line.text,
@@ -394,10 +436,13 @@ export const drawCover = (
       );
       y += line.height;
     }
+
     textBox = box;
   }
+
   ctx.restore();
   ctx.letterSpacing = "0px";
+
   return textBox;
 };
 
@@ -417,10 +462,13 @@ const fitText = (ctx: Ctx, text: string, maxW: number): string => {
   if (ctx.measureText(text).width <= maxW) {
     return text;
   }
+
   let t = text;
+
   while (t.length > 1 && ctx.measureText(`${t}…`).width > maxW) {
     t = t.slice(0, -1);
   }
+
   return `${t.trimEnd()}…`;
 };
 
@@ -442,6 +490,7 @@ export const drawPlayer = (
   ctx.save();
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
+
   if (photo) {
     // A soft, blurred echo of the photo behind everything.
     ctx.save();
@@ -541,6 +590,7 @@ export const drawPlayer = (
       s * 1.6
     );
   };
+
   skip(slots[1], 1);
   skip(slots[3], -1);
 
@@ -553,11 +603,13 @@ export const drawPlayer = (
   roundRect(ctx, slots[2] + 1.6 * u, cy - 6.5 * u, 3.4 * u, 13 * u, u);
   ctx.fill();
   ctx.fillStyle = fg;
+
   for (const dx of [-7, 0, 7]) {
     ctx.beginPath();
     ctx.arc(slots[4] + dx * u, cy, 2.2 * u, 0, Math.PI * 2);
     ctx.fill();
   }
+
   ctx.restore();
 };
 
@@ -587,10 +639,12 @@ export const drawRecord = (
   const y = (h - side) / 2;
   const cx = x + side + peek - r;
   const cy = h / 2;
+
   const circle = (radius: number) => {
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   };
+
   const shadow = (blur: number, drop: number) => {
     ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
     ctx.shadowBlur = h * blur;
@@ -610,6 +664,7 @@ export const drawRecord = (
   ctx.restore();
   // Light catching the grooves at two opposite angles, fading either side.
   const sheen = ctx.createConicGradient(0, cx, cy);
+
   for (const [at, alpha] of [
     [0, 0],
     [0.04, 0.09],
@@ -620,15 +675,18 @@ export const drawRecord = (
   ]) {
     sheen.addColorStop(at, `rgba(255, 255, 255, ${alpha})`);
   }
+
   ctx.fillStyle = sheen;
   circle(r);
   ctx.fill();
   ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
   ctx.lineWidth = Math.max(1, r * 0.004);
+
   for (let g = 0.42; g < 0.97; g += 0.035) {
     circle(r * g);
     ctx.stroke();
   }
+
   ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
   circle(r * 0.995);
   ctx.stroke();

@@ -16,6 +16,7 @@ export const filterPhoto = (
   if (filter === "original" || strength <= 0) {
     return photo;
   }
+
   const scale = Math.min(1, maxSide / Math.max(photo.width, photo.height));
   const width = Math.max(1, Math.round(photo.width * scale));
   const height = Math.max(1, Math.round(photo.height * scale));
@@ -23,12 +24,15 @@ export const filterPhoto = (
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
   if (!ctx) {
     return photo;
   }
+
   ctx.drawImage(photo.image, 0, 0, width, height);
   const pixels = ctx.getImageData(0, 0, width, height);
   applyMatrix(pixels.data, filterMatrix(filter, strength / 100));
   ctx.putImageData(pixels, 0, 0);
+
   return { ...photo, height, image: canvas, width };
 };

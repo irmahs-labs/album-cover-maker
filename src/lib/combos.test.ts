@@ -44,6 +44,7 @@ describe("COMBOS", () => {
     for (const family of new Set(PAIRS.flat())) {
       expect(fontFaces).toContain(`font-family: '${family}';`);
     }
+
     expect(fontFaces).not.toContain("googleapis");
   });
 });
@@ -62,8 +63,10 @@ describe("suggestCombos", () => {
   it("keeps the listed order, taking turns with the photo's hues", () => {
     const sugs = suggestCombos([10, 120, 250]);
     expect(sugs.map((s) => s.combo.id)).toEqual(COMBOS.map((c) => c.id));
+
     const base = (s: (typeof sugs)[number]) =>
       (s.playerHue - s.combo.playerShift + 360) % 360;
+
     expect(sugs.slice(0, 3).map(base)).toEqual([10, 120, 250]);
   });
 

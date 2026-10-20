@@ -3,6 +3,7 @@ import type { SubtitleFont, TextStyle, TitleFont } from "./fonts";
 import { PLAIN } from "./fonts";
 
 export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
 export const CORNERS: Corner[] = [
   "top-left",
   "top-right",
@@ -11,8 +12,11 @@ export const CORNERS: Corner[] = [
 ];
 
 type Row = "top" | "middle" | "bottom";
+
 type Column = "left" | "center" | "right";
+
 export type TextPosition = `${Row}-${Column}`;
+
 /** The nine spots the title and subtitle can sit in, in reading order. */
 export const TEXT_POSITIONS: TextPosition[] = (
   ["top", "middle", "bottom"] as const
@@ -21,7 +25,9 @@ export const TEXT_POSITIONS: TextPosition[] = (
     (column): TextPosition => `${row}-${column}`
   )
 );
+
 export type TextAlign = Column;
+
 export const TEXT_ALIGNS: TextAlign[] = ["left", "center", "right"];
 
 /**
@@ -32,9 +38,11 @@ export const placedText = (
   state: Pick<CoverState, "labelCorner" | "showLabel" | "textPosition">
 ): TextPosition => {
   const { labelCorner, showLabel, textPosition } = state;
+
   if (showLabel && textPosition === labelCorner) {
     return `middle-${textPosition.endsWith("left") ? "left" : "right"}`;
   }
+
   return textPosition;
 };
 

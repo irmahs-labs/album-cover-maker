@@ -13,7 +13,9 @@ const click = (init: Partial<MouseEvent> = {}) => {
     ...init,
     preventDefault: vi.fn(),
   };
+
   linkTo("/make")(event);
+
   return event;
 };
 

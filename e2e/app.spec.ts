@@ -17,16 +17,19 @@ const pixel = (page: Page, x: number, y: number) =>
   page.locator(".cover-frame canvas").evaluate(
     (canvas: HTMLCanvasElement, [fx, fy]) => {
       const ctx = canvas.getContext("2d");
+
       const data = ctx?.getImageData(
         Math.round(canvas.width * fx),
         Math.round(canvas.height * fy),
         1,
         1
       ).data;
+
       return data ? [data[0], data[1], data[2]] : null;
     },
     [x, y]
   );
+
 /**
  * Share of a label's area that is black, white or grey (the label's letters
  * blend to grey at small sizes, the orange test photo never is): by default the top-left
@@ -42,13 +45,16 @@ const labelShare = (page: Page, corner = "top-left", width = 0.1) =>
       const y = where.startsWith("top") ? 0.035 : 1 - 0.035 - h;
       const data = ctx?.getImageData(at(x), at(y), at(w), at(h)).data ?? [];
       let plain = 0;
+
       for (let i = 0; i < data.length; i += 4) {
         const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
         const grey = Math.max(r, g, b) - Math.min(r, g, b) < 24;
+
         if (grey) {
           plain += 1;
         }
       }
+
       return plain / (data.length / 4);
     },
     [corner, width] as const
@@ -59,7 +65,9 @@ const exportFile = async (page: Page, button: string) => {
     page.waitForEvent("download"),
     page.locator(".export", { hasText: button }).click(),
   ]);
+
   const path = await download.path();
+
   return { file: await readFile(path), name: download.suggestedFilename() };
 };
 
@@ -113,6 +121,7 @@ test("the record's backdrop takes the photo's main colour", async ({
   page,
 }) => {
   await page.goto("/make");
+
   const corner = () =>
     page
       .locator(".record-frame canvas")
@@ -121,6 +130,7 @@ test("the record's backdrop takes the photo's main colour", async ({
           ...(canvas.getContext("2d")?.getImageData(2, 2, 1, 1).data ?? []),
         ].slice(0, 3)
       );
+
   // Before a photo: the placeholder art's dark green.
   await expect.poll(corner).toEqual([0x3b, 0x4a, 0x42]);
   await addPhoto(page);
@@ -128,6 +138,7 @@ test("the record's backdrop takes the photo's main colour", async ({
   await expect
     .poll(async () => {
       const [r, g, b] = await corner();
+
       return r > g && g > b && r > 190;
     })
     .toBe(true);
@@ -153,16 +164,20 @@ test("I'm feeling lucky redraws the cover with its new picks", async ({
 test("dragging the title snaps it to one of nine spots", async ({ page }) => {
   await page.goto("/make");
   const box = await page.locator(".cover-frame canvas").boundingBox();
+
   if (!box) {
     throw new Error("no cover preview");
   }
+
   const at = (fx: number, fy: number) =>
     [box.x + box.width * fx, box.y + box.height * fy] as const;
+
   const pressed = (group: string) =>
     page
       .getByRole("group", { name: group })
       .locator('[aria-pressed="true"]')
       .textContent();
+
   /** Whether the text sits at a spot, going by the two position groups. */
   const atSpot = async (row: string, column: string) =>
     [
@@ -193,10 +208,13 @@ test("a filter changes the photo on the cover, by its strength", async ({
     .getByRole("group", { name: "Photo filter" })
     .getByRole("button", { name: "Mono" })
     .click();
+
   const spread = async () => {
     const p = (await pixel(page, 0.66, 0.33)) ?? [0, 0, 0];
+
     return Math.max(...p) - Math.min(...p);
   };
+
   await expect.poll(spread).toBeLessThan(3);
   // At 0% strength the photo is back to its own colours.
   await page.locator("#filter-strength").fill("0");
@@ -224,9 +242,11 @@ test("picking a pairing loads both its fonts from the site", async ({
   page,
 }) => {
   await page.goto("/make");
+
   const combo = page
     .locator(".combo")
     .filter({ has: page.locator(".combo-name", { hasText: /^Cinzel$/u }) });
+
   await combo.scrollIntoViewIfNeeded();
   await combo.click();
   await expect(page.locator("#title-font")).toHaveText("Cinzel");
@@ -246,6 +266,7 @@ test("each font in the menu is written in its own font", async ({ page }) => {
   await page.getByRole("button", { exact: true, name: "Title font" }).click();
   const list = page.getByRole("listbox", { exact: true, name: "Title font" });
   await expect(list).toBeVisible();
+
   for (const name of [
     "Abril Fatface",
     "Fugaz One",
@@ -253,10 +274,12 @@ test("each font in the menu is written in its own font", async ({ page }) => {
     "Grand Hotel",
   ]) {
     const option = list.getByRole("option", { exact: true, name });
+
     // oxlint-disable-next-line no-await-in-loop -- one menu option at a time, as a person would check them
     const family = await option.evaluate(
       (el) => getComputedStyle(el).fontFamily
     );
+
     expect(family.startsWith(`"${name}"`)).toBe(true);
     // ...and the font itself has loaded, so it isn't the fallback showing.
     // oxlint-disable-next-line no-await-in-loop -- one menu option at a time, as a person would check them
@@ -266,6 +289,7 @@ test("each font in the menu is written in its own font", async ({ page }) => {
       )
       .toBe(true);
   }
+
   await list.getByRole("option", { name: "Grand Hotel" }).click();
   await expect(page.locator("#title-font")).toHaveText("Grand Hotel");
   await expect(list).toBeHidden();
@@ -277,6 +301,7 @@ test("never contacts another site, photo and fonts included", async ({
   const elsewhere = new Set<string>();
   page.on("request", (request) => {
     const url = new URL(request.url());
+
     if (url.protocol.startsWith("http") && url.host !== "localhost:4173") {
       elsewhere.add(url.host);
     }
@@ -284,17 +309,20 @@ test("never contacts another site, photo and fonts included", async ({
   await page.goto("/");
   await page.getByRole("link", { exact: true, name: "start making" }).click();
   await addPhoto(page);
+
   for (const name of ["Grand Hotel", "DotGothic16", "Sacramento"]) {
     const combo = page.locator(".combo").filter({
       has: page.locator(".combo-name", {
         hasText: new RegExp(`^${name}$`, "u"),
       }),
     });
+
     // oxlint-disable-next-line no-await-in-loop -- the clicks are steps in order, each on the page the last one left
     await combo.scrollIntoViewIfNeeded();
     // oxlint-disable-next-line no-await-in-loop -- the clicks are steps in order, each on the page the last one left
     await combo.click();
   }
+
   await exportFile(page, "Cover");
   expect([...elsewhere]).toEqual([]);
 });
@@ -305,9 +333,11 @@ for (const path of ["/", "/make"]) {
   }) => {
     await page.setViewportSize({ height: 844, width: 390 });
     await page.goto(path);
+
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
+
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }

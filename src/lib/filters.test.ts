@@ -10,6 +10,7 @@ const through = (
 ) => {
   const data = new Uint8ClampedArray([...rgb, 255]);
   applyMatrix(data, filterMatrix(id, s));
+
   return [...data];
 };
 
@@ -33,6 +34,7 @@ describe("filters", () => {
     for (const { id } of FILTERS) {
       expect(through(id, [40, 80, 200], 0)).toEqual([40, 80, 200, 255]);
     }
+
     expect(through("original", [40, 80, 200])).toEqual([40, 80, 200, 255]);
   });
 
