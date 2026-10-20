@@ -12,11 +12,9 @@ concurrency:
 
 jobs:
   # Lint and format, Type-check, Tests, Build and Docker build, shared by every
-  # irmahs-labs repo (irmahs-labs/workflows); only what differs here is passed.
+  # irmahs-labs repo (irmahs-labs/workflows), with its defaults.
   app:
     uses: irmahs-labs/workflows/.github/workflows/app-ci.yml@main
-    with:
-      typecheck: npm run lint
 
   e2e:
     name: End-to-end tests

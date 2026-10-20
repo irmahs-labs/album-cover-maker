@@ -11,7 +11,7 @@ npm install
 npm run dev        # http://localhost:5173  (landing at /, maker at /make)
 npm test           # unit, drawing and screen tests (vitest)
 npm run test:e2e   # end-to-end tests in Chromium (Playwright; builds first)
-npm run lint       # typecheck, app and end-to-end tests
+npm run typecheck  # app and end-to-end tests
 npm run check      # Ultracite: oxlint + anti-slop, oxfmt (report only)
 npm run fix        # the same, fixing and formatting what it can
 npm run build      # outputs dist/
