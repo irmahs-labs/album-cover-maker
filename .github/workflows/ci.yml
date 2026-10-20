@@ -10,57 +10,15 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# One job per check, so a pull request lists each one with its own result.
 jobs:
-  lint:
-    name: Lint and format
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - name: Ultracite
-        run: npm run check
-
-  typecheck:
-    name: Type-check
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - name: Type-check (app and end-to-end tests)
-        run: npm run lint
-
-  test:
-    name: Tests
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm test
-
-  build:
-    name: Build
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+  # Lint and format, Type-check, Tests, Build and Docker build, shared by every
+  # irmahs-labs repo (irmahs-labs/workflows); only what differs here is passed.
+  app:
+    uses: irmahs-labs/workflows/.github/workflows/app-ci.yml@main
+    with:
+      typecheck: npm run lint
+      compose-check: docker network create proxy && docker compose config --quiet
+      docker-image: album-cover-maker-web
 
   e2e:
     name: End-to-end tests
@@ -86,23 +44,12 @@ jobs:
             test-results
           retention-days: 7
 
-  docker:
-    name: Docker build
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - name: Validate compose
-        run: docker network create proxy && docker compose config --quiet
-
-      - name: Docker build
-        run: docker build -t album-cover-maker-web .
-
   # The branch rules require a check named "checks". It fails if any job
   # above failed, was cancelled or skipped; list new jobs in needs.
   checks:
     name: checks
     if: always()
-    needs: [lint, typecheck, test, build, e2e, docker]
+    needs: [app, e2e]
     runs-on: ubuntu-24.04
     steps:
       - name: A job did not pass
