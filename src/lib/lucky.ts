@@ -9,6 +9,7 @@ type Random = () => number;
 
 const pick = <T>(items: readonly T[], random: Random): T =>
   items[Math.min(items.length - 1, Math.floor(random() * items.length))];
+
 const chance = (p: number, random: Random) => random() < p;
 const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
 
@@ -18,6 +19,7 @@ const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
  */
 export const textColors = (photoHues: number[]): string[] => {
   const hues = photoHues.length ? photoHues : [40];
+
   return [
     "#fff3cf",
     "#ffffff",
@@ -60,6 +62,7 @@ export const feelingLucky = (
   // middle of that side, as it would by hand.
   const textPosition = pick(TEXT_POSITIONS, random);
   const textAlign = pick(TEXT_ALIGNS, random);
+
   return {
     ...state,
     buttonHue,
