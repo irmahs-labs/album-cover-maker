@@ -16,7 +16,7 @@ const wrap = (h: number) => ((Math.round(h) % 360) + 360) % 360;
  * Text colours that read on most photos: cream, white and a near-black,
  * plus a pale tint, a bright tone and a deep shade of each photo hue.
  */
-export function textColors(photoHues: number[]): string[] {
+export const textColors = (photoHues: number[]): string[] => {
   const hues = photoHues.length ? photoHues : [40];
   return [
     "#fff3cf",
@@ -28,7 +28,7 @@ export function textColors(photoHues: number[]): string[] {
       hslToHex(h, 55, 20),
     ]),
   ].map((c) => c.toLowerCase());
-}
+};
 
 /** Mostly plain, sometimes bold or italic, now and then underlined or struck. */
 const treatment = (random: Random, bold = false): TextStyle => ({
@@ -44,11 +44,11 @@ const treatment = (random: Random, bold = false): TextStyle => ({
  * The words, the photo and whether the label and text show are left as
  * they are.
  */
-export function feelingLucky(
+export const feelingLucky = (
   state: CoverState,
   photoHues: number[],
   random: Random = Math.random
-): CoverState {
+): CoverState => {
   const hues = photoHues.length ? photoHues : [40];
   const combo = pick(COMBOS, random);
   const colors = textColors(hues);
@@ -76,4 +76,4 @@ export function feelingLucky(
     titleFont: combo.titleFont,
     titleStyle: treatment(random, combo.titleStyle.bold),
   };
-}
+};

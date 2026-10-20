@@ -69,62 +69,64 @@ export const PLAIN: TextStyle = {
 };
 
 /** Weight each family is drawn at when bold is off. */
-const BASE_WEIGHT: Partial<Record<string, number>> = {
-  "Playfair Display": 700,
-  Syne: 700,
-};
+const BASE_WEIGHT = new Map([
+  ["Playfair Display", 700],
+  ["Syne", 700],
+]);
 
 /** What the browser shows for the moment before a family has loaded. */
-const FALLBACK: Partial<Record<string, string>> = {
-  "Abril Fatface": "serif",
-  Alegreya: "serif",
-  Alice: "serif",
-  Arvo: "serif",
-  Cardo: "serif",
-  Chonburi: "serif",
-  Cinzel: "serif",
-  "Crimson Text": "serif",
-  Domine: "serif",
-  "Fauna One": "serif",
-  "Grand Hotel": "cursive",
-  Lora: "serif",
-  Merriweather: "serif",
-  "Playfair Display": "serif",
-  Rokkitt: "serif",
-  Rufina: "serif",
-  Sacramento: "cursive",
-  "Slabo 27px": "serif",
-  "Source Serif 4": "serif",
-  "Space Mono": "monospace",
-  Spectral: "serif",
-  Ultra: "serif",
-  Yellowtail: "cursive",
-  "Yeseva One": "serif",
-  "Young Serif": "serif",
-};
+const FALLBACK = new Map([
+  ["Abril Fatface", "serif"],
+  ["Alegreya", "serif"],
+  ["Alice", "serif"],
+  ["Arvo", "serif"],
+  ["Cardo", "serif"],
+  ["Chonburi", "serif"],
+  ["Cinzel", "serif"],
+  ["Crimson Text", "serif"],
+  ["Domine", "serif"],
+  ["Fauna One", "serif"],
+  ["Grand Hotel", "cursive"],
+  ["Lora", "serif"],
+  ["Merriweather", "serif"],
+  ["Playfair Display", "serif"],
+  ["Rokkitt", "serif"],
+  ["Rufina", "serif"],
+  ["Sacramento", "cursive"],
+  ["Slabo 27px", "serif"],
+  ["Source Serif 4", "serif"],
+  ["Space Mono", "monospace"],
+  ["Spectral", "serif"],
+  ["Ultra", "serif"],
+  ["Yellowtail", "cursive"],
+  ["Yeseva One", "serif"],
+  ["Young Serif", "serif"],
+]);
 
 /** The family, weight and style as separate CSS properties, for an element's style. */
-export function fontStyle(family: string, style: TextStyle = PLAIN) {
-  return {
-    fontFamily: `"${family}", ${FALLBACK[family] ?? "sans-serif"}`,
-    fontStyle: style.italic ? "italic" : "normal",
-    fontWeight: style.bold ? 700 : (BASE_WEIGHT[family] ?? 400),
-  };
-}
+export const fontStyle = (family: string, style: TextStyle = PLAIN) => ({
+  fontFamily: `"${family}", ${FALLBACK.get(family) ?? "sans-serif"}`,
+  fontStyle: style.italic ? "italic" : "normal",
+  fontWeight: style.bold ? 700 : (BASE_WEIGHT.get(family) ?? 400),
+});
 
-export function cssFont(family: string, style: TextStyle, px: number): string {
+export const cssFont = (
+  family: string,
+  style: TextStyle,
+  px: number
+): string => {
   const f = fontStyle(family, style);
   return `${style.italic ? "italic " : ""}${f.fontWeight} ${px}px ${f.fontFamily}`;
-}
+};
 
 /**
  * Waits until the given font faces are usable on a canvas. Never rejects.
  * The faces are declared in src/font-faces.css and served with the site
  * (Fontsource packages), so nothing is fetched from Google.
  */
-export async function loadFonts(specs: string[]): Promise<void> {
+export const loadFonts = async (specs: string[]): Promise<void> => {
   if (typeof document === "undefined" || !document.fonts) {
     return;
   }
   await Promise.all(specs.map((s) => document.fonts.load(s).catch(() => [])));
-}
+};

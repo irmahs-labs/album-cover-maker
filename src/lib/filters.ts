@@ -79,12 +79,12 @@ const scaled = (id: FilterId, strength: number) =>
   );
 
 /** The filter as a CSS `filter` value, for previews drawn by the browser. */
-export function cssFilter(id: FilterId, strength = 1): string {
+export const cssFilter = (id: FilterId, strength = 1): string => {
   const parts = scaled(id, strength).map(([op, a]) =>
     op === "hue-rotate" ? `hue-rotate(${a}deg)` : `${op}(${a})`
   );
   return parts.length ? parts.join(" ") : "none";
-}
+};
 
 /**
  * A colour matrix: three rows of [r, g, b, offset], the offset in 0–255.
@@ -109,7 +109,7 @@ const rgbMatrix = (m: number[]): Matrix => [
   0,
 ];
 
-function opMatrix(op: Op, a: number): Matrix {
+const opMatrix = (op: Op, a: number): Matrix => {
   switch (op) {
     case "grayscale": {
       const k = 1 - Math.min(1, a);
@@ -178,36 +178,38 @@ function opMatrix(op: Op, a: number): Matrix {
       return IDENTITY_MATRIX;
     }
   }
-}
+};
 
 /** `a` applied after `b`. */
-function compose(a: Matrix, b: Matrix): Matrix {
+const compose = (a: Matrix, b: Matrix): Matrix => {
   const out: Matrix = [];
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 4; j++) {
+  for (let i = 0; i < 3; i += 1) {
+    for (let j = 0; j < 4; j += 1) {
       let v = j === 3 ? a[i * 4 + 3] : 0;
-      for (let k = 0; k < 3; k++) {
+      for (let k = 0; k < 3; k += 1) {
         v += a[i * 4 + k] * b[k * 4 + j];
       }
       out.push(v);
     }
   }
   return out;
-}
+};
 
 /** The whole filter at `strength` (0–1) as one matrix. */
-export const filterMatrix = (id: FilterId, strength = 1): Matrix =>
-  scaled(id, strength).reduce(
-    (m, [op, a]) => compose(opMatrix(op, a), m),
-    IDENTITY_MATRIX
-  );
+export const filterMatrix = (id: FilterId, strength = 1): Matrix => {
+  let m = IDENTITY_MATRIX;
+  for (const [op, a] of scaled(id, strength)) {
+    m = compose(opMatrix(op, a), m);
+  }
+  return m;
+};
 
 /** Runs RGBA pixels through a matrix in place; alpha is kept. */
-export function applyMatrix(data: Uint8ClampedArray, m: Matrix) {
+export const applyMatrix = (data: Uint8ClampedArray, m: Matrix) => {
   for (let i = 0; i < data.length; i += 4) {
     const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
     data[i] = m[0] * r + m[1] * g + m[2] * b + m[3];
     data[i + 1] = m[4] * r + m[5] * g + m[6] * b + m[7];
     data[i + 2] = m[8] * r + m[9] * g + m[10] * b + m[11];
   }
-}
+};

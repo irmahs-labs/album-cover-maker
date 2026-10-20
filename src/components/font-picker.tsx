@@ -18,14 +18,14 @@ interface Props<F extends string> {
  * <select> can't do this on macOS or iOS, where the system draws the list
  * and ignores each option's font.
  */
-export function FontPicker<F extends string>({
+export const FontPicker = <F extends string>({
   id,
   label,
   fonts,
   value,
   style,
   onChange,
-}: Props<F>) {
+}: Props<F>) => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const root = useRef<HTMLDivElement>(null);
@@ -34,8 +34,8 @@ export function FontPicker<F extends string>({
   const typed = useRef({ at: 0, text: "" });
   const optionId = (i: number) => `${id}-option-${i}`;
 
-  const show = (index = fonts.indexOf(value)) => {
-    setActive(Math.max(0, index));
+  const show = (index?: number) => {
+    setActive(Math.max(0, index ?? fonts.indexOf(value)));
     setOpen(true);
   };
   const close = (refocus: boolean) => {
@@ -78,6 +78,7 @@ export function FontPicker<F extends string>({
 
   /** Typing a name jumps to the first font that starts with it. */
   const typeAhead = (key: string) => {
+    // oxlint-disable-next-line react/purity -- this runs in the list's key handler, never during render
     const now = Date.now();
     const t = typed.current;
     t.text = now - t.at < 700 ? t.text + key.toLowerCase() : key.toLowerCase();
@@ -92,17 +93,18 @@ export function FontPicker<F extends string>({
 
   const onListKey = (e: React.KeyboardEvent) => {
     const last = fonts.length - 1;
-    const moves: Record<string, number> = {
-      ArrowDown: Math.min(last, active + 1),
-      ArrowUp: Math.max(0, active - 1),
-      End: last,
-      Home: 0,
-      PageDown: Math.min(last, active + 8),
-      PageUp: Math.max(0, active - 8),
-    };
-    if (e.key in moves) {
+    const moves = new Map([
+      ["ArrowDown", Math.min(last, active + 1)],
+      ["ArrowUp", Math.max(0, active - 1)],
+      ["End", last],
+      ["Home", 0],
+      ["PageDown", Math.min(last, active + 8)],
+      ["PageUp", Math.max(0, active - 8)],
+    ]);
+    const move = moves.get(e.key);
+    if (move !== undefined) {
       e.preventDefault();
-      setActive(moves[e.key]);
+      setActive(move);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       choose(active);
@@ -145,6 +147,7 @@ export function FontPicker<F extends string>({
         <div
           ref={list}
           id={`${id}-list`}
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a native <select> can't show each option in its own font on macOS or iOS
           role="listbox"
           aria-label={label}
           aria-activedescendant={optionId(active)}
@@ -160,10 +163,11 @@ export function FontPicker<F extends string>({
         >
           {fonts.map((font, i) => (
             // Keyboard use goes through the listbox's onKeyDown.
-            // oxlint-disable-next-line click-events-have-key-events
+            // oxlint-disable-next-line click-events-have-key-events, jsx-a11y/interactive-supports-focus -- focus stays on the listbox, which points at the active option with aria-activedescendant
             <div
               key={font}
               id={optionId(i)}
+              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <option> only works inside a native <select>, which can't show each font
               role="option"
               aria-selected={font === value}
               className={i === active ? "active" : undefined}
@@ -178,4 +182,4 @@ export function FontPicker<F extends string>({
       )}
     </div>
   );
-}
+};

@@ -13,26 +13,32 @@ import type { Box } from "../lib/render";
 import type { CoverState, Photo } from "../lib/state";
 
 /** Bumps whenever the fonts the state uses and the advisory label finish loading, so canvases redraw. */
-export function useFontsReady(state: CoverState): number {
+export const useFontsReady = (state: CoverState): number => {
   const [tick, setTick] = useState(0);
   const { titleFont, subtitleFont, titleStyle, subtitleStyle } = state;
   useEffect(() => {
     let live = true;
-    Promise.all([
-      loadFonts([
-        cssFont(titleFont, titleStyle, 40),
-        cssFont(subtitleFont, subtitleStyle, 40),
-        `700 40px "Lato"`,
-        `400 40px "Lato"`,
-      ]),
-      loadAdvisory(),
-    ]).then(() => live && setTick((t) => t + 1));
+    const load = async () => {
+      await Promise.all([
+        loadFonts([
+          cssFont(titleFont, titleStyle, 40),
+          cssFont(subtitleFont, subtitleStyle, 40),
+          `700 40px "Lato"`,
+          `400 40px "Lato"`,
+        ]),
+        loadAdvisory(),
+      ]);
+      if (live) {
+        setTick((t) => t + 1);
+      }
+    };
+    load();
     return () => {
       live = false;
     };
   }, [titleFont, subtitleFont, titleStyle, subtitleStyle]);
   return tick;
-}
+};
 
 interface Props extends Omit<
   React.CanvasHTMLAttributes<HTMLCanvasElement>,
@@ -62,14 +68,14 @@ const ASPECT: Record<Kind, number> = {
 export const BLANK_BACKGROUND = "#3B4A42";
 
 /** Draws one of the three; for the cover, returns where its text landed. */
-function draw(
+const draw = (
   ctx: CanvasRenderingContext2D,
   kind: Kind,
   width: number,
   state: CoverState,
   photo: Photo | null,
   background: string
-): Box | null {
+): Box | null => {
   if (kind === "cover") {
     return drawCover(ctx, width, state, photo);
   }
@@ -79,9 +85,9 @@ function draw(
     drawRecord(ctx, width, state, photo, background);
   }
   return null;
-}
+};
 
-export function CoverCanvas({
+export const CoverCanvas = ({
   kind,
   state,
   photo,
@@ -90,7 +96,7 @@ export function CoverCanvas({
   onTextBox,
   background = BLANK_BACKGROUND,
   ...rest
-}: Props) {
+}: Props) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const height = width * ASPECT[kind];
 
@@ -117,10 +123,11 @@ export function CoverCanvas({
         }
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- fontsTick is not read: it is listed so the canvas redraws once the fonts finish loading
   }, [kind, state, photo, width, height, fontsTick, onTextBox, background]);
 
   return <canvas ref={ref} {...rest} />;
-}
+};
 
 /** What each export is: its width (the height follows) and file type. */
 export const EXPORTS: Record<Kind, { width: number; type: string }> = {
@@ -130,13 +137,13 @@ export const EXPORTS: Record<Kind, { width: number; type: string }> = {
 };
 
 /** Renders the cover, player or record at full export size and downloads it. */
-export async function exportImage(
+export const exportImage = async (
   kind: Kind,
   state: CoverState,
   photo: Photo | null,
   background: string,
   filename: string
-) {
+) => {
   const { width, type } = EXPORTS[kind];
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -147,9 +154,10 @@ export async function exportImage(
   }
   await loadAdvisory();
   draw(ctx, kind, width, state, photo, background);
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, type, 0.92)
-  );
+  // oxlint-disable-next-line promise/avoid-new -- canvas.toBlob only reports through a callback, so it is wrapped in a promise here
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, type, 0.92);
+  });
   if (!blob) {
     throw new Error("Could not create the image.");
   }
@@ -161,4 +169,4 @@ export async function exportImage(
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
+};

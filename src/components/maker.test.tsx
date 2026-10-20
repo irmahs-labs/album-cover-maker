@@ -12,22 +12,33 @@ import { Maker } from "./maker";
 
 setUpDom();
 
-const input = (id: string) =>
-  document.querySelector<HTMLInputElement>(`#${id}`)!;
+/** The element with this id, which the test needs to be on the page. */
+const byId = <E extends Element>(id: string) => {
+  const el = document.querySelector<E>(`#${id}`);
+  if (!el) {
+    throw new Error(`Nothing on the page has the id ${id}.`);
+  }
+  return el;
+};
+const input = (id: string) => byId<HTMLInputElement>(id);
 /** The font a menu shows as chosen. */
-const fontOf = (id: string) =>
-  document.querySelector<HTMLButtonElement>(`#${id}`)!.textContent;
+const fontOf = (id: string) => byId<HTMLButtonElement>(id).textContent;
 const pickFont = async (id: string, name: string) => {
-  await userEvent.click(document.querySelector<HTMLButtonElement>(`#${id}`)!);
+  await userEvent.click(byId<HTMLButtonElement>(id));
   await userEvent.click(screen.getByRole("option", { name }));
 };
 const preview = () =>
   screen.getByRole("img", { name: /^Album cover preview/u });
 const comboList = () => screen.getByRole("list", { name: "Suggested combos" });
-const comboButton = (name: string) =>
-  within(comboList())
+const comboButton = (name: string) => {
+  const button = within(comboList())
     .getAllByRole("button")
-    .find((b) => b.querySelector(".combo-name")?.textContent === name)!;
+    .find((b) => b.querySelector(".combo-name")?.textContent === name);
+  if (!button) {
+    throw new Error(`There is no combo named ${name}.`);
+  }
+  return button;
+};
 const pressed = (el: HTMLElement) => el.getAttribute("aria-pressed") === "true";
 
 describe("maker: cover text", () => {
@@ -70,51 +81,55 @@ describe("maker: cover text", () => {
   });
 });
 
-describe("maker: text placement", () => {
-  const group = (name: string) =>
-    within(screen.getByRole("group", { name })).getAllByRole(
-      "button"
-    ) as HTMLButtonElement[];
-  /** Picks a spot: its row in one group, its column in the other. */
-  const spot = async (row: string, column: string) => {
-    const pick = (group: string, name: string) =>
-      userEvent.click(
-        within(screen.getByRole("group", { name: group })).getByRole("button", {
-          name,
-        })
-      );
-    await pick("Vertical position", row);
-    await pick("Horizontal position", column);
-  };
-  const pressedNames = (name: string) =>
-    group(name)
-      .filter(pressed)
-      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+/** The buttons in the group with this name. */
+const groupButtons = (name: string) =>
+  within(screen.getByRole("group", { name })).getAllByRole<HTMLButtonElement>(
+    "button"
+  );
+/** Clicks the button with this name in the group with that name. */
+const pick = (groupName: string, name: string) =>
+  userEvent.click(
+    within(screen.getByRole("group", { name: groupName })).getByRole("button", {
+      name,
+    })
+  );
+/** Picks a spot: its row in one group, its column in the other. */
+const spot = async (row: string, column: string) => {
+  await pick("Vertical position", row);
+  await pick("Horizontal position", column);
+};
+/** The names of the pressed buttons in a group. */
+const pressedIn = (groupName: string) =>
+  groupButtons(groupName)
+    .filter(pressed)
+    .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+const textsOf = (groupName: string) =>
+  groupButtons(groupName).map((b) => b.textContent);
 
+describe("maker: text placement", () => {
   it("offers top, middle or bottom and left, center or right, starting bottom left", () => {
     render(<Maker />);
-    const names = (g: string) => group(g).map((b) => b.textContent);
-    expect(names("Vertical position")).toEqual(["top", "middle", "bottom"]);
-    expect(names("Horizontal position")).toEqual(["left", "center", "right"]);
-    expect(pressedNames("Vertical position")).toEqual(["bottom"]);
-    expect(pressedNames("Horizontal position")).toEqual(["left"]);
+    expect(textsOf("Vertical position")).toEqual(["top", "middle", "bottom"]);
+    expect(textsOf("Horizontal position")).toEqual(["left", "center", "right"]);
+    expect(pressedIn("Vertical position")).toEqual(["bottom"]);
+    expect(pressedIn("Horizontal position")).toEqual(["left"]);
   });
 
   it("moves the text to the spot you pick, row and column separately", async () => {
     render(<Maker />);
     await spot("top", "right");
-    expect(pressedNames("Vertical position")).toEqual(["top"]);
-    expect(pressedNames("Horizontal position")).toEqual(["right"]);
+    expect(pressedIn("Vertical position")).toEqual(["top"]);
+    expect(pressedIn("Horizontal position")).toEqual(["right"]);
     await spot("middle", "right");
-    expect(pressedNames("Vertical position")).toEqual(["middle"]);
-    expect(pressedNames("Horizontal position")).toEqual(["right"]);
+    expect(pressedIn("Vertical position")).toEqual(["middle"]);
+    expect(pressedIn("Horizontal position")).toEqual(["right"]);
   });
 
   it("aligns left, center or right, starting left", async () => {
     render(<Maker />);
-    expect(pressedNames("Text alignment")).toEqual(["Align left"]);
+    expect(pressedIn("Text alignment")).toEqual(["Align left"]);
     await userEvent.click(screen.getByRole("button", { name: "Align center" }));
-    expect(pressedNames("Text alignment")).toEqual(["Align center"]);
+    expect(pressedIn("Text alignment")).toEqual(["Align center"]);
   });
 
   it("explains that the label keeps its corner and the text moves to the middle", async () => {
@@ -131,9 +146,13 @@ describe("maker: text placement", () => {
   it("disables position and alignment when the cover has no text", async () => {
     render(<Maker />);
     await userEvent.click(input("show-text"));
-    expect(group("Vertical position").every((b) => b.disabled)).toBe(true);
-    expect(group("Horizontal position").every((b) => b.disabled)).toBe(true);
-    expect(group("Text alignment").every((b) => b.disabled)).toBe(true);
+    expect(groupButtons("Vertical position").every((b) => b.disabled)).toBe(
+      true
+    );
+    expect(groupButtons("Horizontal position").every((b) => b.disabled)).toBe(
+      true
+    );
+    expect(groupButtons("Text alignment").every((b) => b.disabled)).toBe(true);
   });
 
   it("always shows the title in the player, with no switch for it", () => {
@@ -141,23 +160,21 @@ describe("maker: text placement", () => {
     const switches = screen
       .getAllByRole("switch")
       .map((el) => el.closest("label")?.textContent?.trim());
-    expect([...switches].sort()).toEqual([
-      "Show text on the cover",
-      "Show the label",
-    ]);
+    switches.sort();
+    expect(switches).toEqual(["Show text on the cover", "Show the label"]);
   });
 });
 
-describe("maker: font menus", () => {
-  const titleButton = () => screen.getByRole("button", { name: "Title font" });
-  const options = () => screen.getAllByRole("option");
-  const activeOption = () => {
-    const list = screen.getByRole("listbox");
-    return document.querySelector(
-      `#${list.getAttribute("aria-activedescendant")}`
-    )?.textContent;
-  };
+const titleButton = () => screen.getByRole("button", { name: "Title font" });
+const options = () => screen.getAllByRole("option");
+const activeOption = () => {
+  const list = screen.getByRole("listbox");
+  return document.querySelector(
+    `#${list.getAttribute("aria-activedescendant")}`
+  )?.textContent;
+};
 
+describe("maker: font menus", () => {
   it("writes every font in the list in its own font", async () => {
     render(<Maker />);
     await userEvent.click(titleButton());
@@ -274,15 +291,10 @@ describe("maker: combos", () => {
   });
 });
 
-describe("maker: I'm feeling lucky", () => {
-  const lucky = () =>
-    userEvent.click(screen.getByRole("button", { name: "I'm feeling lucky" }));
-  const pressedIn = (group: string) =>
-    within(screen.getByRole("group", { name: group }))
-      .getAllByRole("button")
-      .filter(pressed)
-      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+const lucky = () =>
+  userEvent.click(screen.getByRole("button", { name: "I'm feeling lucky" }));
 
+describe("maker: I'm feeling lucky", () => {
   it("rolls the label, fonts, text colours and treatment, and player colours", async () => {
     render(<Maker />);
     // Every roll lands on the last choice, and no treatment is switched on.
@@ -359,17 +371,15 @@ describe("maker: text colours", () => {
   });
 });
 
+const sizeButtons = () => groupButtons("Label size");
+
 describe("maker: parental advisory", () => {
   it("disables the size and corner controls when the label is off", async () => {
     render(<Maker />);
-    const buttons = (group: string) =>
-      within(screen.getByRole("group", { name: group })).getAllByRole(
-        "button"
-      ) as HTMLButtonElement[];
-    expect(buttons("Label size").some((b) => b.disabled)).toBe(false);
+    expect(groupButtons("Label size").some((b) => b.disabled)).toBe(false);
     await userEvent.click(input("pa-show"));
-    expect(buttons("Label size").every((b) => b.disabled)).toBe(true);
-    expect(buttons("Label corner").every((b) => b.disabled)).toBe(true);
+    expect(groupButtons("Label size").every((b) => b.disabled)).toBe(true);
+    expect(groupButtons("Label corner").every((b) => b.disabled)).toBe(true);
   });
 
   it("moves the label to the corner you pick", async () => {
@@ -385,11 +395,6 @@ describe("maker: parental advisory", () => {
       pressed(within(group).getByRole("button", { name: "top left" }))
     ).toBe(false);
   });
-
-  const sizeButtons = () =>
-    within(screen.getByRole("group", { name: "Label size" })).getAllByRole(
-      "button"
-    );
 
   it("offers six sizes, XS to XXL, each with its percentage", () => {
     render(<Maker />);
@@ -424,10 +429,10 @@ describe("maker: parental advisory", () => {
   });
 });
 
-describe("maker: photo", () => {
-  const upload = (file: File) =>
-    fireEvent.change(input("photo-file"), { target: { files: [file] } });
+const upload = (file: File) =>
+  fireEvent.change(input("photo-file"), { target: { files: [file] } });
 
+describe("maker: photo", () => {
   it("has zoom off until there is a photo, and it goes from 100% to 500%", () => {
     render(<Maker />);
     expect(input("zoom").disabled).toBe(true);
@@ -438,9 +443,8 @@ describe("maker: photo", () => {
   it("refuses a file that is not an image, and the message can be dismissed", async () => {
     render(<Maker />);
     upload(new File(["hello"], "notes.txt", { type: "text/plain" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(
-      /That isn't an image/u
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/That isn't an image/u);
     await userEvent.click(screen.getByRole("button", { name: "dismiss" }));
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -448,9 +452,8 @@ describe("maker: photo", () => {
   it("explains when an image file cannot be opened", async () => {
     render(<Maker />);
     upload(new File(["not really a png"], "broken.png", { type: "image/png" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(
-      /couldn't be opened as an image/u
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/couldn't be opened as an image/u);
   });
 
   it("promises the photo stays in the browser", () => {
@@ -461,12 +464,9 @@ describe("maker: photo", () => {
   });
 });
 
-describe("maker: photo filters", () => {
-  const filters = () =>
-    within(screen.getByRole("group", { name: "Photo filter" })).getAllByRole(
-      "button"
-    ) as HTMLButtonElement[];
+const filters = () => groupButtons("Photo filter");
 
+describe("maker: photo filters", () => {
   it("offers the six filters, Original chosen, all off until there is a photo", () => {
     render(<Maker />);
     expect(filters().map((b) => b.textContent)).toEqual([
@@ -506,12 +506,12 @@ describe("maker: photo filters", () => {
   });
 });
 
-describe("maker: player colours", () => {
-  const hue = (id: string) => Number(input(id).value);
-  const slide = (id: string, value: number) =>
-    fireEvent.change(input(id), { target: { value: String(value) } });
-  const lock = () => screen.getByRole("button", { name: /locked/u });
+const hue = (id: string) => Number(input(id).value);
+const slide = (id: string, value: number) =>
+  fireEvent.change(input(id), { target: { value: String(value) } });
+const lock = () => screen.getByRole("button", { name: /locked/u });
 
+describe("maker: player colours", () => {
   it("starts locked, so both sliders turn together", () => {
     render(<Maker />);
     expect(pressed(lock())).toBe(true);
@@ -551,19 +551,20 @@ describe("maker: player colours", () => {
   });
 });
 
-describe("maker: undo and redo", () => {
-  const undoButton = () => screen.getByRole("button", { name: "undo" });
-  const redoButton = () => screen.getByRole("button", { name: "redo" });
-  const sizePressed = () =>
-    within(screen.getByRole("group", { name: "Label size" }))
-      .getAllByRole("button")
-      .filter(pressed)
-      .map((b) => b.getAttribute("aria-label"));
+const undoButton = () =>
+  screen.getByRole<HTMLButtonElement>("button", { name: "undo" });
+const redoButton = () =>
+  screen.getByRole<HTMLButtonElement>("button", { name: "redo" });
+const sizePressed = () =>
+  sizeButtons()
+    .filter(pressed)
+    .map((b) => b.getAttribute("aria-label"));
 
+describe("maker: undo and redo", () => {
   it("has nothing to undo or redo at the start", () => {
     render(<Maker />);
-    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
-    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(true);
   });
 
   it("takes back a change and puts it back", async () => {
@@ -573,7 +574,7 @@ describe("maker: undo and redo", () => {
     expect(sizePressed()).toEqual(["S 10%"]);
     await userEvent.click(redoButton());
     expect(sizePressed()).toEqual(["XXL 20%"]);
-    expect((redoButton() as HTMLButtonElement).disabled).toBe(true);
+    expect(redoButton().disabled).toBe(true);
   });
 
   it("undoes a whole word typed at once in one step", async () => {
@@ -586,11 +587,13 @@ describe("maker: undo and redo", () => {
 
   it("undoes each lucky roll on its own", async () => {
     render(<Maker />);
-    const lucky = screen.getByRole("button", { name: "I'm feeling lucky" });
+    const luckyButton = screen.getByRole("button", {
+      name: "I'm feeling lucky",
+    });
     vi.spyOn(Math, "random").mockReturnValue(0);
-    await userEvent.click(lucky);
+    await userEvent.click(luckyButton);
     vi.spyOn(Math, "random").mockReturnValue(0.99);
-    await userEvent.click(lucky);
+    await userEvent.click(luckyButton);
     expect(sizePressed()).toEqual(["XXL 20%"]);
     await userEvent.click(undoButton());
     expect(sizePressed()).toEqual(["XS 8%"]);
@@ -622,7 +625,7 @@ describe("maker: undo and redo", () => {
     render(<Maker />);
     await userEvent.click(screen.getByRole("button", { name: "XL 16%" }));
     await userEvent.click(screen.getByRole("button", { name: "start over" }));
-    expect((undoButton() as HTMLButtonElement).disabled).toBe(true);
+    expect(undoButton().disabled).toBe(true);
   });
 });
 
@@ -642,9 +645,9 @@ describe("maker: export and start over", () => {
 
   it("previews the record mock-up in its own window", () => {
     render(<Maker />);
-    const preview = screen.getByRole("img", { name: /^Record mock-up/u });
+    const record = screen.getByRole("img", { name: /^Record mock-up/u });
     expect(
-      preview.closest("fieldset")?.querySelector("legend")?.textContent
+      record.closest("fieldset")?.querySelector("legend")?.textContent
     ).toBe("record.jpeg");
   });
 

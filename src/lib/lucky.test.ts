@@ -12,9 +12,12 @@ import {
 import type { CoverState } from "./state";
 
 /** A small seeded generator, so a run of rolls is the same every time. */
-const seeded = (seed: number) => () => {
-  seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
-  return seed / 2_147_483_648;
+const seeded = (seed: number) => {
+  let state = seed;
+  return () => {
+    state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
+    return state / 2_147_483_648;
+  };
 };
 
 const start: CoverState = {
@@ -41,7 +44,7 @@ describe("textColors", () => {
 
 describe("feelingLucky", () => {
   it("only picks sizes, corners, pairings and colours that exist", () => {
-    const sizes = LABEL_SIZES.map((s) => s.percent as number);
+    const sizes: number[] = LABEL_SIZES.map((s) => s.percent);
     const colors = textColors([200, 20]);
     for (const s of rolls(200)) {
       expect(sizes).toContain(s.labelSize);

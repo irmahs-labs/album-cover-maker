@@ -13,7 +13,7 @@ const click = (init: Partial<MouseEvent> = {}) => {
     ...init,
     preventDefault: vi.fn(),
   };
-  linkTo("/make")(event as unknown as React.MouseEvent<HTMLAnchorElement>);
+  linkTo("/make")(event);
   return event;
 };
 

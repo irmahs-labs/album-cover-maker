@@ -7,12 +7,12 @@ import type { Photo } from "../lib/state";
  * if it is bigger (the previews use a smaller copy; exports the full one).
  * Returns the photo itself for Original, 0% strength or no canvas.
  */
-export function filterPhoto(
+export const filterPhoto = (
   photo: Photo,
   filter: FilterId,
   strength: number,
   maxSide = Number.POSITIVE_INFINITY
-): Photo {
+): Photo => {
   if (filter === "original" || strength <= 0) {
     return photo;
   }
@@ -31,4 +31,4 @@ export function filterPhoto(
   applyMatrix(pixels.data, filterMatrix(filter, strength / 100));
   ctx.putImageData(pixels, 0, 0);
   return { ...photo, height, image: canvas, width };
-}
+};

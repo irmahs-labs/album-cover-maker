@@ -13,6 +13,10 @@ const through = (
   return [...data];
 };
 
+/** How far apart a pixel's lowest and highest colour channels are. */
+const spread = (p: number[]) =>
+  Math.max(...p.slice(0, 3)) - Math.min(...p.slice(0, 3));
+
 describe("filters", () => {
   it("offers the six filters in the design's order", () => {
     expect(FILTERS.map((f) => f.name)).toEqual([
@@ -41,8 +45,9 @@ describe("filters", () => {
   });
 
   it("goes halfway at 50% strength", () => {
-    const full = through("mono", [40, 80, 200])[2];
-    const half = through("mono", [40, 80, 200], 0.5)[2];
+    // Channel 2 is blue.
+    const { 2: full } = through("mono", [40, 80, 200]);
+    const { 2: half } = through("mono", [40, 80, 200], 0.5);
     expect(half).toBeCloseTo((200 + full) / 2, -0.5);
   });
 
@@ -55,8 +60,6 @@ describe("filters", () => {
   });
 
   it("flattens contrast with Fade and boosts colour with Vivid", () => {
-    const spread = (p: number[]) =>
-      Math.max(...p.slice(0, 3)) - Math.min(...p.slice(0, 3));
     expect(spread(through("fade", [200, 120, 60]))).toBeLessThan(140);
     expect(spread(through("vivid", [200, 120, 60]))).toBeGreaterThan(140);
   });

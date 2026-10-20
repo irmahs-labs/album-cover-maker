@@ -54,6 +54,14 @@ describe("slug", () => {
   });
 });
 
+/** Where the text goes when it was put in the label's own corner. */
+const moved = (corner: "top-left" | "bottom-right") =>
+  placedText({
+    labelCorner: corner,
+    showLabel: true,
+    textPosition: corner,
+  });
+
 describe("placedText", () => {
   it("leaves the text where it was put when the label is elsewhere or off", () => {
     for (const textPosition of TEXT_POSITIONS) {
@@ -71,12 +79,6 @@ describe("placedText", () => {
   });
 
   it("moves the text to the middle of the side when the label has its corner", () => {
-    const moved = (corner: "top-left" | "bottom-right") =>
-      placedText({
-        labelCorner: corner,
-        showLabel: true,
-        textPosition: corner,
-      });
     expect(moved("top-left")).toBe("middle-left");
     expect(moved("bottom-right")).toBe("middle-right");
   });
