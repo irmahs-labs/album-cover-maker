@@ -30,7 +30,7 @@ npm run build
 npm run test:e2e  # Playwright, when a change touches what the browser shows
 ```
 
-The PostToolUse hook in `.claude/hooks/ultracite.sh` runs Ultracite on every file you edit.
+The PostToolUse hook in `.claude/hooks/ultracite.sh` runs Ultracite and the typecheck on every file you edit.
 
 ## Design
 
