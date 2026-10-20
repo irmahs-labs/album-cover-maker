@@ -17,8 +17,6 @@ jobs:
     uses: irmahs-labs/workflows/.github/workflows/app-ci.yml@main
     with:
       typecheck: npm run lint
-      compose-check: docker network create proxy && docker compose config --quiet
-      docker-image: album-cover-maker-web
 
   e2e:
     name: End-to-end tests
