@@ -24,7 +24,7 @@ Always name the branch after the feature or fix it contains, never a random or g
 
 ```sh
 npm run check     # Ultracite (oxlint + oxfmt); CI fails on it
-npm run lint      # typecheck, app and end-to-end tests
+npm run typecheck # app and end-to-end tests
 npm test          # vitest
 npm run build
 npm run test:e2e  # Playwright, when a change touches what the browser shows
