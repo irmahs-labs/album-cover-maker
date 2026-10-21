@@ -2,6 +2,7 @@ import { COMBOS } from "../lib/combos";
 import { DEFAULT_STATE } from "../lib/state";
 import type { CoverState } from "../lib/state";
 import { linkTo } from "../router";
+import { AccountButton } from "./account-button";
 import { CoverCanvas, useFontsReady } from "./cover-canvas";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
@@ -83,6 +84,7 @@ export const Landing = () => {
         </a>
         <div className="topbar-end">
           <ThemeToggle />
+          <AccountButton />
           <a href="/make" onClick={linkTo("/make")} className="pill primary">
             make a cover
           </a>

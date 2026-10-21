@@ -1,27 +1,29 @@
 :root {
   /* Cute Matcha's role tokens, named by job: Light Matcha here, Dark Matcha
-     below. Pick one by what the thing is, never by its hex. */
+     (green tea) below. Pick one by what the thing is, never by its hex. */
   --ground: #f3f1c8;
   --panel: #f7f8de;
-  --raised: #ffffff;
-  --raised-hover: #e3f0c6;
+  --header: #f7f8de;
+  --raised: #fffdf0;
+  --raised-hover: #e8e1bd;
   --text: #2f3b34;
   --text-muted: #3f6b30;
   --outline: #2f3b34;
-  --accent: #dde87e;
-  --accent-soft: #b8d970;
+  --accent: #d4dd9c;
+  --accent-soft: #afc584;
   --on-accent: #2f3b34;
   --strong: #3b4a42;
   --on-strong: #fff3cf;
-  /* A hovered primary: one step past strong, in either theme. */
-  --strong-hover: #2f3b34;
+  --selected: #afc584;
+  --on-selected: #2f3b34;
   --grid: #4e6152;
-  --pattern-dot: #b8d970;
+  --pattern-dot: #afc584;
   --pattern-line: #f3f1c800;
   --focus: #4a7fc0;
   --danger: #f0675c;
-  --shadow-hard: 3px 3px 0 #2f3b34;
-  --shadow-soft: 2px 2px 0 #2f3b34;
+  /* Hard shadows are the same near-black in both themes */
+  --shadow-hard: 3px 3px 0 #0f1411;
+  --shadow-soft: 2px 2px 0 #0f1411;
   color-scheme: light;
 
   /* Fixed: they belong to drawings and marks, never to text. */
@@ -29,28 +31,39 @@
   --gold: #f2d27a;
   --cream: #fff3cf;
   --white: #ffffff;
-  --plus: #5fc35a;
-  --minus: #f5c04a;
+  --ink: #2f3b34;
+  /* The window buttons: plus in moss, minus in gold */
+  --plus: #5c8f48;
+  --minus: #f2d27a;
 
-  --font: "Lato", "Helvetica Neue", Arial, sans-serif;
-  --display: "Abril Fatface", Georgia, serif;
+  /* Fredoka sets titles and panel names, Nunito Sans everything else;
+     both are served by the app itself (src/font-faces.css) */
+  --font: "Nunito Sans", "Fredoka", system-ui, sans-serif;
+  --display: "Fredoka", "Nunito Sans", system-ui, sans-serif;
 }
 :root[data-theme="dark"] {
-  --ground: #1c2420;
-  --panel: #2b3631;
-  --raised: #3b4a42;
-  --raised-hover: #485847;
-  --text: #fff3cf;
-  --text-muted: #b8d970;
+  /* Green tea: a mid-tone matcha page, cards a step lighter, and the header,
+     buttons and fields a darker well. Outlines and shadows stay near-black. */
+  --ground: #46574b;
+  --panel: #52645a;
+  --header: #2f3d34;
+  --raised: #2f3d34;
+  --raised-hover: #3a4a3f;
+  --text: #f3f1c8;
+  --text-muted: #d4e396;
   --outline: #0f1411;
-  --strong: #dde87e;
-  --on-strong: #2f3b34;
-  --strong-hover: #c9d66b;
-  --grid: #c9d66b;
+  --accent: #c9d68f;
+  --accent-soft: #9eb27a;
+  --on-accent: #0f1411;
+  --strong: #1c2420;
+  --on-strong: #f3f1c8;
+  --selected: #c9d68f;
+  --on-selected: #0f1411;
+  --grid: #2f3b34;
   --pattern-dot: #b8d97000;
-  --pattern-line: #242e29;
-  --shadow-hard: 3px 3px 0 #0f1411;
-  --shadow-soft: 2px 2px 0 #0f1411;
+  --pattern-line: #4d5f52;
+  --focus: #c2d8f5;
+  --danger: #f6a49d;
   color-scheme: dark;
 }
 
@@ -130,7 +143,7 @@ input:disabled {
   justify-content: space-between;
   gap: 12px 16px;
   padding: 14px 28px;
-  background: var(--panel);
+  background: var(--header);
   border-bottom: 2px solid var(--outline);
   color: var(--text);
 }
@@ -145,7 +158,7 @@ input:disabled {
   display: block;
   font-size: 24px;
   font-family: var(--display);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.1;
 }
 .brand-by {
@@ -171,7 +184,7 @@ input:disabled {
   gap: 10px;
 }
 .topbar-actions .pill.primary {
-  box-shadow: 3px 3px 0 var(--outline);
+  box-shadow: 3px 3px 0 #0f1411;
 }
 .history {
   display: flex;
@@ -187,6 +200,65 @@ input:disabled {
   align-items: center;
   justify-content: flex-end;
   gap: 10px 18px;
+}
+
+/* Cute Matcha's AccountButton, as a 40px header pill: a panel piece lying
+   on the desk, with Google's mark or the person's picture in a white
+   circle. On phones only the circle shows; its text stays for screen
+   readers. */
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 4px;
+  border: 1.5px solid var(--outline);
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.account:hover {
+  color: var(--text);
+  background: var(--raised-hover);
+}
+.account-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border: 1.5px solid var(--outline);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 700;
+}
+.account-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 600px) {
+  .account {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .account-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* Buttons */
@@ -211,13 +283,15 @@ input:disabled {
   color: var(--text);
 }
 .pill.primary {
-  background: var(--strong);
-  color: var(--on-strong);
-  box-shadow: 3px 3px 0 var(--outline);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 3px 3px 0 #0f1411;
 }
 .pill.primary:hover {
-  background: var(--strong-hover);
-  color: var(--on-strong);
+  background: var(--accent);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #0f1411;
+  color: var(--on-accent);
 }
 .pill.big {
   min-height: 48px;
@@ -243,8 +317,8 @@ input:disabled {
   font-weight: 700;
 }
 .toggle[aria-pressed="true"] {
-  background: var(--strong);
-  color: var(--on-strong);
+  background: var(--selected);
+  color: var(--on-selected);
 }
 
 /* Panels (the editor's fieldsets) */
@@ -266,7 +340,8 @@ input:disabled {
   border-radius: 999px;
   padding: 2px 12px;
   font-size: 12px;
-  font-weight: 700;
+  font-family: var(--display);
+  font-weight: 600;
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
@@ -371,7 +446,7 @@ input:disabled {
   border: 2px solid var(--outline);
   border-radius: 9px;
   background: var(--raised);
-  box-shadow: 3px 3px 0 var(--outline);
+  box-shadow: 3px 3px 0 #0f1411;
   outline: none;
   color: var(--text);
 }
@@ -388,8 +463,8 @@ input:disabled {
   color: var(--on-accent);
 }
 .font-list [role="option"][aria-selected="true"] {
-  background: var(--strong);
-  color: var(--on-strong);
+  background: var(--selected);
+  color: var(--on-selected);
 }
 .font-list:focus-visible {
   outline: 3px solid var(--focus);
@@ -414,7 +489,7 @@ input.hue::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--white);
   border: 2px solid var(--outline);
-  box-shadow: 2px 2px 0 var(--outline);
+  box-shadow: 2px 2px 0 #0f1411;
 }
 input.hue::-moz-range-thumb {
   width: 22px;
@@ -449,11 +524,11 @@ input.switch::after {
   transition: left 0.15s;
 }
 input.switch:checked {
-  background: var(--strong);
+  background: var(--selected);
 }
 input.switch:checked::after {
   left: 24px;
-  background: var(--on-strong);
+  background: var(--on-selected);
 }
 
 /* The lock between the two player sliders, on a dashed line. */
@@ -473,8 +548,8 @@ input.switch:checked::after {
   min-height: 36px;
 }
 .hue-lock .pill[aria-pressed="true"] {
-  background: var(--strong);
-  color: var(--on-strong);
+  background: var(--selected);
+  color: var(--on-selected);
 }
 .swatch-value {
   display: flex;
@@ -583,7 +658,7 @@ input.switch:checked::after {
   color: var(--text);
   font-size: 16px;
   white-space: nowrap;
-  box-shadow: 3px 3px 0 var(--outline);
+  box-shadow: 3px 3px 0 #0f1411;
 }
 .drop-hint span {
   font-size: 13px;
@@ -683,8 +758,8 @@ input.switch:checked::after {
   border-right: 0;
 }
 .segmented button[aria-pressed="true"] {
-  background: var(--strong);
-  color: var(--on-strong);
+  background: var(--selected);
+  color: var(--on-selected);
 }
 .segmented button:focus-visible {
   outline-offset: -4px;
@@ -776,8 +851,8 @@ input.switch:checked::after {
   min-height: 64px;
 }
 .combo[aria-pressed="true"] {
-  background: var(--strong);
-  color: var(--on-strong);
+  background: var(--selected);
+  color: var(--on-selected);
 }
 .combo-swatch {
   flex: none;
@@ -802,7 +877,7 @@ input.switch:checked::after {
   color: var(--text-muted);
 }
 .combo[aria-pressed="true"] .combo-fonts {
-  color: var(--on-strong);
+  color: var(--on-selected);
   opacity: 0.85;
 }
 
@@ -877,7 +952,7 @@ input.switch:checked::after {
   font-weight: 700;
 }
 .export:hover:not(:disabled) {
-  background: var(--strong-hover);
+  background: color-mix(in srgb, var(--strong) 88%, var(--on-strong));
 }
 .export span {
   font-size: 13px;
@@ -927,7 +1002,7 @@ input.switch:checked::after {
   background: var(--accent);
   border: 2px solid var(--outline);
   border-radius: 14px;
-  box-shadow: 5px 5px 0 var(--outline);
+  box-shadow: 5px 5px 0 #0f1411;
   overflow: hidden;
   color: var(--on-accent);
 }
@@ -945,8 +1020,9 @@ input.switch:checked::after {
 }
 .window-name {
   color: var(--on-strong);
+  font-family: var(--display);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.3px;
 }
 .window-dots {
@@ -994,7 +1070,7 @@ input.switch:checked::after {
   background: var(--accent-soft);
   border: 2px solid var(--outline);
   border-radius: 11px;
-  box-shadow: 3px 3px 0 var(--outline);
+  box-shadow: 3px 3px 0 #0f1411;
   padding: 4px 14px;
   font-size: 16px;
   font-weight: 700;
@@ -1004,7 +1080,7 @@ input.switch:checked::after {
   margin: 0;
   font-size: clamp(36px, 6vw, 56px);
   font-family: var(--display);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.05;
 }
 .hero-lead {
@@ -1033,7 +1109,7 @@ input.switch:checked::after {
   aspect-ratio: 1;
   border: 2px solid var(--outline);
   border-radius: 6px;
-  box-shadow: 5px 5px 0 var(--outline);
+  box-shadow: 5px 5px 0 #0f1411;
 }
 .hero-player {
   position: absolute;
@@ -1045,7 +1121,7 @@ input.switch:checked::after {
   aspect-ratio: 3 / 4;
   border: 2px solid var(--outline);
   border-radius: 18px;
-  box-shadow: 4px 4px 0 var(--outline);
+  box-shadow: 4px 4px 0 #0f1411;
 }
 
 .how {
@@ -1080,13 +1156,13 @@ input.switch:checked::after {
   color: var(--on-strong);
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 .step h2 {
   margin: 0;
   font-size: 20px;
   font-family: var(--display);
-  font-weight: 400;
+  font-weight: 600;
 }
 .step p {
   margin: 0;
@@ -1106,7 +1182,7 @@ input.switch:checked::after {
   gap: 12px;
 }
 .get-list li {
-  background: var(--raised);
+  background: var(--panel);
   border: 2px solid var(--outline);
   border-radius: 9px;
   padding: 14px;

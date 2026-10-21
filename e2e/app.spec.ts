@@ -295,14 +295,23 @@ test("each font in the menu is written in its own font", async ({ page }) => {
   await expect(list).toBeHidden();
 });
 
-test("never contacts another site, photo and fonts included", async ({
+// The header asks the IrmaHS Labs account service who is signed in, to show
+// the account pill: the one request that may leave the site
+const SESSION_CHECK = "https://auth.irmahs.dev/api/auth/get-session";
+
+test("contacts no other site but the account service, photo and fonts included", async ({
   page,
 }) => {
   const elsewhere = new Set<string>();
   page.on("request", (request) => {
     const url = new URL(request.url());
+    const mine = url.host === "localhost:4173";
 
-    if (url.protocol.startsWith("http") && url.host !== "localhost:4173") {
+    if (
+      url.protocol.startsWith("http") &&
+      !mine &&
+      request.url() !== SESSION_CHECK
+    ) {
       elsewhere.add(url.host);
     }
   });
