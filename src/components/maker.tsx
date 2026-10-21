@@ -34,6 +34,7 @@ import {
 } from "../lib/state";
 import type { CoverState, Photo } from "../lib/state";
 import { linkTo } from "../router";
+import { AccountButton } from "./account-button";
 import {
   BLANK_BACKGROUND,
   CoverCanvas,
@@ -758,6 +759,7 @@ export const Maker = () => {
             </button>
           </div>
           <ThemeToggle />
+          <AccountButton />
         </div>
       </header>
 
