@@ -6,38 +6,13 @@ import { AccountButton } from "./account-button";
 import { CoverCanvas, useFontsReady } from "./cover-canvas";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
+import { Window } from "./window";
 
 const SAMPLE: CoverState = {
   ...DEFAULT_STATE,
   subtitle: "Alexa",
   title: "Sleepless Nights",
 };
-
-const Window = ({
-  name,
-  children,
-  className = "",
-}: {
-  name: string;
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <section
-    className={`window ${className}`}
-    // read as its words: "how-it-works.md" is "how it works"
-    aria-label={name.replace(/\.\w+$/u, "").replaceAll("-", " ")}
-  >
-    <div className="window-bar">
-      <span className="window-name">{name}</span>
-      <span className="window-dots" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
-    </div>
-    <div className="window-body">{children}</div>
-  </section>
-);
 
 const STEPS = [
   {
