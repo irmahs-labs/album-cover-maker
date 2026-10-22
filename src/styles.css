@@ -190,7 +190,9 @@ input:disabled {
   display: flex;
   gap: 8px;
 }
-.history .pill {
+/* The header's small pills (undo, redo, the sun/moon switch) stand as tall
+   as the account pill beside them */
+.topbar-end .pill.small {
   min-height: 40px;
   padding: 4px 14px;
 }
