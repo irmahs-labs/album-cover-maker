@@ -6,37 +6,13 @@ import { AccountButton } from "./account-button";
 import { CoverCanvas, useFontsReady } from "./cover-canvas";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
+import { Window } from "./window";
 
 const SAMPLE: CoverState = {
   ...DEFAULT_STATE,
   subtitle: "Alexa",
   title: "Sleepless Nights",
 };
-
-const Window = ({
-  name,
-  children,
-  className = "",
-}: {
-  name: string;
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <section
-    className={`window ${className}`}
-    aria-label={name.replaceAll(/[._]/gu, " ")}
-  >
-    <div className="window-bar">
-      <span className="window-name">{name}</span>
-      <span className="window-dots" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
-    </div>
-    <div className="window-body">{children}</div>
-  </section>
-);
 
 const STEPS = [
   {
@@ -136,7 +112,7 @@ export const Landing = () => {
           </div>
         </Window>
 
-        <Window name="how_it_works.md" className="how">
+        <Window name="how-it-works.md" className="how">
           <ol id="how" className="steps">
             {STEPS.map((s, i) => (
               <li key={s.title} className="step">
@@ -150,7 +126,7 @@ export const Landing = () => {
           </ol>
         </Window>
 
-        <Window name="what_you_get" className="get">
+        <Window name="what-you-get.zip" className="get">
           <ul className="get-list">
             <li>
               <strong>Cover PNG</strong>
@@ -194,7 +170,7 @@ export const Landing = () => {
       </main>
 
       <footer className="footer">
-        <Logo size={20} /> made by Irma HS
+        <Logo size={20} /> Album Cover Maker by Irma HS
       </footer>
     </div>
   );

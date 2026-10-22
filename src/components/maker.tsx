@@ -46,6 +46,7 @@ import { filterPhoto } from "./filter-photo";
 import { FontPicker } from "./font-picker";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
+import { Window } from "./window";
 
 const useElementWidth = <T extends HTMLElement>(fallback: number) => {
   const ref = useRef<T>(null);
@@ -778,9 +779,10 @@ export const Maker = () => {
         )}
 
         <section aria-label="Preview" className="preview-row">
-          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the panel is where a photo can be dropped; the "choose photo" button is the keyboard way in */}
-          <fieldset
-            className={`panel cover-panel${dragOver ? " drag-over" : ""}`}
+          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the window is where a photo can be dropped; the "choose photo" button is the keyboard way in */}
+          <Window
+            name="cover.png"
+            className={`cover-window${dragOver ? " drag-over" : ""}`}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -792,7 +794,6 @@ export const Maker = () => {
               openFile(e.dataTransfer.files[0]);
             }}
           >
-            <legend>cover.png</legend>
             <div className="cover-stage">
               <div ref={coverBox} className="cover-frame">
                 <CoverCanvas
@@ -846,10 +847,9 @@ export const Maker = () => {
                 ? "Drag the title to place it, or anywhere else to move your photo (arrow keys work too)."
                 : "Your photo stays in your browser. Nothing is uploaded."}
             </p>
-          </fieldset>
+          </Window>
 
-          <fieldset className="panel player-panel">
-            <legend>player.exe</legend>
+          <Window name="player.exe" className="player-window">
             <div className="player-stage">
               <CoverCanvas
                 kind="player"
@@ -863,10 +863,9 @@ export const Maker = () => {
                 aria-label="Music player preview using your cover"
               />
             </div>
-          </fieldset>
+          </Window>
 
-          <fieldset className="panel record-panel">
-            <legend>record.jpeg</legend>
+          <Window name="record.jpeg" className="record-window">
             <div ref={recordBox} className="record-frame">
               <CoverCanvas
                 kind="record"
@@ -884,7 +883,7 @@ export const Maker = () => {
               The backdrop is your photo&apos;s main colour, and the
               record&apos;s label shows the picture.
             </p>
-          </fieldset>
+          </Window>
         </section>
 
         <form
@@ -1342,7 +1341,7 @@ export const Maker = () => {
         </form>
       </main>
       <footer className="footer">
-        <Logo size={20} /> Album Cover Maker by Irma HS · no login, no uploads
+        <Logo size={20} /> Album Cover Maker by Irma HS
       </footer>
     </div>
   );

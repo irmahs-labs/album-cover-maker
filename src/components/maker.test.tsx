@@ -679,10 +679,11 @@ describe("maker: export and start over", () => {
 
   it("previews the record mock-up in its own window", () => {
     render(<Maker />);
-    const record = screen.getByRole("img", { name: /^Record mock-up/u });
+    const record = screen.getByRole("region", { name: "record" });
+    expect(within(record).getByText("record.jpeg")).toBeTruthy();
     expect(
-      record.closest("fieldset")?.querySelector("legend")?.textContent
-    ).toBe("record.jpeg");
+      within(record).getByRole("img", { name: /^Record mock-up/u })
+    ).toBeTruthy();
   });
 
   it("keeps everything when you cancel start over", async () => {

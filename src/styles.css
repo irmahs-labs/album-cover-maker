@@ -584,15 +584,30 @@ input.switch:checked::after {
   gap: 24px;
   align-items: stretch;
 }
-.cover-panel {
+/* The three previews are windows; their bodies stretch to the row's height */
+.preview-row .window {
+  display: flex;
+  flex-direction: column;
+}
+.preview-row .window-body {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.preview-row .hint {
+  color: var(--on-accent);
+}
+.cover-window {
   flex: 400 1 0;
   min-width: 300px;
 }
-.cover-panel.drag-over {
-  background: var(--accent);
-  color: var(--on-accent);
+/* A photo held over the lime window darkens it a step */
+.cover-window.drag-over .window-body {
+  background: var(--accent-soft);
 }
-.player-panel {
+.player-window {
   flex: 0 0 290px;
 }
 .cover-stage {
@@ -673,7 +688,7 @@ input.switch:checked::after {
   justify-content: center;
   align-items: center;
 }
-.record-panel {
+.record-window {
   flex: 582 1 0;
   min-width: 360px;
 }
@@ -1261,9 +1276,9 @@ input.switch:checked::after {
     min-width: 0;
     justify-content: flex-start;
   }
-  .cover-panel,
-  .player-panel,
-  .record-panel {
+  .cover-window,
+  .player-window,
+  .record-window {
     flex-basis: 100%;
     min-width: 0;
   }
