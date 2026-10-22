@@ -170,7 +170,7 @@ export const Landing = () => {
       </main>
 
       <footer className="footer">
-        <Logo size={20} /> made by Irma HS
+        <Logo size={20} /> Album Cover Maker by Irma HS
       </footer>
     </div>
   );
