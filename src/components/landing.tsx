@@ -24,7 +24,8 @@ const Window = ({
 }) => (
   <section
     className={`window ${className}`}
-    aria-label={name.replaceAll(/[._]/gu, " ")}
+    // read as its words: "how-it-works.md" is "how it works"
+    aria-label={name.replace(/\.\w+$/u, "").replaceAll("-", " ")}
   >
     <div className="window-bar">
       <span className="window-name">{name}</span>
@@ -136,7 +137,7 @@ export const Landing = () => {
           </div>
         </Window>
 
-        <Window name="how_it_works.md" className="how">
+        <Window name="how-it-works.md" className="how">
           <ol id="how" className="steps">
             {STEPS.map((s, i) => (
               <li key={s.title} className="step">
@@ -150,7 +151,7 @@ export const Landing = () => {
           </ol>
         </Window>
 
-        <Window name="what_you_get" className="get">
+        <Window name="what-you-get.zip" className="get">
           <ul className="get-list">
             <li>
               <strong>Cover PNG</strong>

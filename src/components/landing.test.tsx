@@ -30,7 +30,7 @@ describe("landing page", () => {
 
   it("answers the account question in the FAQ", () => {
     render(<App />);
-    const faq = screen.getByRole("region", { name: "faq txt" });
+    const faq = screen.getByRole("region", { name: "faq" });
     expect(within(faq).getByText("Do I need an account?")).toBeTruthy();
     expect(
       within(faq).getByText(/No\. There's no sign-up and no login/u)

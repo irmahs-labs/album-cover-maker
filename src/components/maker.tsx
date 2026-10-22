@@ -894,7 +894,7 @@ export const Maker = () => {
         >
           <div className="stack">
             <fieldset className="panel">
-              <legend>photo</legend>
+              <legend>photo.jpg</legend>
               {photo ? (
                 <div className="photo-info">
                   <CoverCanvas
@@ -1007,7 +1007,7 @@ export const Maker = () => {
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>export</legend>
+              <legend>export.zip</legend>
               <button
                 type="button"
                 className="export"
@@ -1043,7 +1043,7 @@ export const Maker = () => {
 
           <div className="stack">
             <fieldset className="panel">
-              <legend>cover text</legend>
+              <legend>cover-text.txt</legend>
               <label htmlFor="show-text" className="switch-row">
                 Show text on the cover
                 <input
@@ -1113,7 +1113,7 @@ export const Maker = () => {
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>player</legend>
+              <legend>player.ini</legend>
               <HueSlider
                 id="player-hue"
                 label="Player"
@@ -1153,7 +1153,7 @@ export const Maker = () => {
 
           <div className="stack">
             <fieldset className="panel">
-              <legend>fonts</legend>
+              <legend>fonts.ttf</legend>
               <div className="field">
                 <label htmlFor="title-font">Title font</label>
                 <FontPicker
@@ -1215,7 +1215,7 @@ export const Maker = () => {
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>label</legend>
+              <legend>label.svg</legend>
               <label htmlFor="pa-show" className="switch-row">
                 Show the label
                 <input
@@ -1282,7 +1282,7 @@ export const Maker = () => {
           </div>
 
           <fieldset className="panel combos-panel">
-            <legend>combos</legend>
+            <legend>combos.csv</legend>
             <p className="lead">
               {photo
                 ? "Picked from your photo."
