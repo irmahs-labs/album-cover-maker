@@ -309,6 +309,39 @@ input:disabled {
   font-size: 13px;
 }
 
+/* The header's language pill: EN and FR, the page's language pressed. It
+   sits beside the small theme pill, at its height. */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  margin: 0;
+  padding: 2px;
+  border: 2px solid var(--outline);
+  border-radius: 999px;
+  background: var(--raised);
+}
+.lang-toggle__option {
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: 800 12px/1 var(--font);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.lang-toggle__option:hover {
+  background: var(--panel);
+}
+.lang-toggle__option[aria-pressed="true"] {
+  border-color: var(--outline);
+  background: var(--selected);
+  color: var(--on-selected);
+}
+
 .toggle {
   min-height: 44px;
   border: 2px solid var(--outline);
