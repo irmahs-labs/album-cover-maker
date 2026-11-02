@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { loadAdvisory } from "../lib/advisory";
 import { cssFont, loadFonts } from "../lib/fonts";
+import { currentLanguage } from "../lib/language";
 import {
   drawCover,
   drawPlayer,
@@ -161,7 +162,11 @@ export const exportImage = async (
   const ctx = canvas.getContext("2d");
 
   if (!ctx) {
-    throw new Error("Canvas is not available in this browser.");
+    throw new Error(
+      currentLanguage() === "fr"
+        ? "Le canvas n’est pas disponible dans ce navigateur."
+        : "Canvas is not available in this browser."
+    );
   }
 
   await loadAdvisory();
@@ -173,7 +178,11 @@ export const exportImage = async (
   });
 
   if (!blob) {
-    throw new Error("Could not create the image.");
+    throw new Error(
+      currentLanguage() === "fr"
+        ? "Impossible de créer l’image."
+        : "Could not create the image."
+    );
   }
 
   const url = URL.createObjectURL(blob);

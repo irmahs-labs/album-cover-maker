@@ -20,6 +20,7 @@ import { SUBTITLE_FONTS, TITLE_FONTS, cssFont } from "../lib/fonts";
 import type { TextStyle } from "../lib/fonts";
 import { historyReducer, startHistory } from "../lib/history";
 import type { History, HistoryAction } from "../lib/history";
+import { currentLanguage, useCopy } from "../lib/language";
 import { feelingLucky } from "../lib/lucky";
 import { photoRect } from "../lib/render";
 import type { Box } from "../lib/render";
@@ -44,7 +45,10 @@ import {
 import type { Kind } from "./cover-canvas";
 import { filterPhoto } from "./filter-photo";
 import { FontPicker } from "./font-picker";
+import { LanguageToggle } from "./language-toggle";
 import { Logo } from "./logo";
+import { MAKER_COPY } from "./maker-copy";
+import type { MakerCopy } from "./maker-copy";
 import { ThemeToggle } from "./theme-toggle";
 import { Window } from "./window";
 
@@ -106,7 +110,9 @@ const loadPhoto = async (
   } catch {
     URL.revokeObjectURL(url);
     throw new Error(
-      "That file couldn't be opened as an image. Try a JPEG, PNG or WebP."
+      currentLanguage() === "fr"
+        ? "Ce fichier ne s’ouvre pas comme une image. Essayez un JPEG, PNG ou WebP."
+        : "That file couldn't be opened as an image. Try a JPEG, PNG or WebP."
     );
   }
 };
@@ -115,23 +121,25 @@ const StyleButtons = ({
   label,
   value,
   onChange,
+  t,
 }: {
   label: string;
   value: TextStyle;
   onChange: (v: TextStyle) => void;
+  t: MakerCopy;
 }) => {
   const keys: { key: keyof TextStyle; text: string; name: string }[] = [
-    { key: "bold", name: "bold", text: "B" },
-    { key: "italic", name: "italic", text: "I" },
-    { key: "underline", name: "underline", text: "U" },
-    { key: "strike", name: "strikethrough", text: "S" },
+    { key: "bold", name: t.styles.bold, text: "B" },
+    { key: "italic", name: t.styles.italic, text: "I" },
+    { key: "underline", name: t.styles.underline, text: "U" },
+    { key: "strike", name: t.styles.strike, text: "S" },
   ];
 
   return (
     <div
       // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
       role="group"
-      aria-label={`${label} font style`}
+      aria-label={t.fontStyle(label)}
       className="style-buttons"
     >
       {keys.map(({ key, text, name }) => (
@@ -215,6 +223,7 @@ const Segmented = <T extends string>({
   value,
   disabled,
   name,
+  text,
   onChange,
 }: {
   label: string;
@@ -223,6 +232,8 @@ const Segmented = <T extends string>({
   disabled?: boolean;
   /** Accessible name for an option, when its text alone is not enough. */
   name?: (option: T) => string;
+  /** What an option reads as, in the page's language. */
+  text: (option: T) => string;
   onChange: (option: T) => void;
 }) => (
   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
@@ -236,7 +247,7 @@ const Segmented = <T extends string>({
         disabled={disabled}
         onClick={() => onChange(option)}
       >
-        {option}
+        {text(option)}
       </button>
     ))}
   </div>
@@ -332,7 +343,19 @@ const third = (v: number) => Math.min(2, Math.max(0, Math.floor(v * 3)));
 const spotAt = (p: { x: number; y: number }) =>
   `${ROWS[third(p.y)]}-${COLUMNS[third(p.x)]}` as const;
 
-const spotName = (spot: string) => spot.replace("-", " ");
+/** A text spot, "top-left", in words in the page's language. */
+const spotName = (
+  spot: `${(typeof ROWS)[number]}-${(typeof COLUMNS)[number]}`,
+  t: MakerCopy
+) => {
+  // SAFETY: a text spot is always "<row>-<column>".
+  const [r, c] = spot.split("-") as [
+    (typeof ROWS)[number],
+    (typeof COLUMNS)[number],
+  ];
+
+  return t.spot(r, c);
+};
 
 const hueTrack = (s: number, l: number) =>
   `linear-gradient(90deg, ${[0, 60, 120, 180, 240, 300, 360].map((h) => `hsl(${h} ${s}% ${l}%)`).join(", ")})`;
@@ -372,8 +395,8 @@ const coverCursor = (onText: boolean, hasPhoto: boolean) => {
 };
 
 /** An export button's label, while that export is saving or not. */
-const exportLabel = (busy: Kind | null, kind: Kind, label: string) =>
-  busy === kind ? "Saving…" : label;
+const exportLabel = (busy: Kind | null, kind: Kind, t: MakerCopy) =>
+  busy === kind ? t.saving : t.exports[kind];
 
 export const Maker = () => {
   const [history, dispatch] = useReducer(
@@ -383,6 +406,7 @@ export const Maker = () => {
   );
 
   const state = history.present;
+  const t = useCopy(MAKER_COPY);
 
   /**
    * Changes the settings. Changes with the same `group` in quick
@@ -473,7 +497,7 @@ export const Maker = () => {
       }
 
       if (!file.type.startsWith("image/")) {
-        setErrorMessage("That isn't an image. Try a JPEG, PNG or WebP.");
+        setErrorMessage(MAKER_COPY[currentLanguage()].notImage);
 
         return;
       }
@@ -672,7 +696,7 @@ export const Maker = () => {
   const startOver = () => {
     if (
       // oxlint-disable-next-line no-alert -- the browser's own confirm is the intended check before clearing everything
-      !window.confirm("Start over? Your photo and settings will be cleared.")
+      !window.confirm(t.startOverConfirm)
     ) {
       return;
     }
@@ -711,7 +735,7 @@ export const Maker = () => {
           <Logo />
           <span>
             <span className="brand-name">Album Cover Maker</span>
-            <span className="brand-by">by Irma HS</span>
+            <span className="brand-by">{t.by}</span>
           </span>
         </a>
         <div className="topbar-actions">
@@ -721,44 +745,43 @@ export const Maker = () => {
             onClick={() => setState((s) => feelingLucky(s, photoHues))}
           >
             <DiceIcon />
-            I&apos;m feeling lucky
+            {t.lucky}
           </button>
           <button type="button" className="pill" onClick={startOver}>
             <RestartIcon />
-            start over
+            {t.startOver}
           </button>
         </div>
         <div className="topbar-end">
-          <p className="topbar-hint">
-            drop in a photo, add your title, export your cover.
-          </p>
+          <p className="topbar-hint">{t.hint}</p>
           <div
             // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
             role="group"
-            aria-label="History"
+            aria-label={t.history}
             className="history"
           >
             <button
               type="button"
               className="pill small"
-              title="Undo (Ctrl+Z or ⌘Z)"
+              title={t.undoTitle}
               disabled={history.past.length === 0}
               onClick={undo}
             >
               <UndoIcon />
-              undo
+              {t.undo}
             </button>
             <button
               type="button"
               className="pill small"
-              title="Redo (Ctrl+Shift+Z or ⇧⌘Z)"
+              title={t.redoTitle}
               disabled={history.future.length === 0}
               onClick={redo}
             >
               <UndoIcon redo />
-              redo
+              {t.redo}
             </button>
           </div>
+          <LanguageToggle />
           <ThemeToggle />
           <AccountButton />
         </div>
@@ -773,12 +796,12 @@ export const Maker = () => {
               className="pill small"
               onClick={() => setErrorMessage(null)}
             >
-              dismiss
+              {t.dismiss}
             </button>
           </p>
         )}
 
-        <section aria-label="Preview" className="preview-row">
+        <section aria-label={t.preview} className="preview-row">
           {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the window is where a photo can be dropped; the "choose photo" button is the keyboard way in */}
           <Window
             name="cover.png"
@@ -804,7 +827,7 @@ export const Maker = () => {
                   fontsTick={fontsTick}
                   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                   role="img"
-                  aria-label={`Album cover preview: ${state.title} by ${state.subtitle}`}
+                  aria-label={t.coverPreview(state.title, state.subtitle)}
                   tabIndex={photo ? 0 : -1}
                   className={coverCursor(
                     overText || draggingText,
@@ -836,17 +859,13 @@ export const Maker = () => {
                     className="drop-hint"
                     onClick={() => fileInput.current?.click()}
                   >
-                    <strong>Drop a photo here</strong>
-                    <span>or click to choose one</span>
+                    <strong>{t.dropHere}</strong>
+                    <span>{t.chooseOne}</span>
                   </button>
                 )}
               </div>
             </div>
-            <p className="hint center">
-              {photo
-                ? "Drag the title to place it, or anywhere else to move your photo (arrow keys work too)."
-                : "Your photo stays in your browser. Nothing is uploaded."}
-            </p>
+            <p className="hint center">{photo ? t.dragHint : t.staysHere}</p>
           </Window>
 
           <Window name="player.exe" className="player-window">
@@ -860,7 +879,7 @@ export const Maker = () => {
                 className="player-canvas"
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                 role="img"
-                aria-label="Music player preview using your cover"
+                aria-label={t.playerPreview}
               />
             </div>
           </Window>
@@ -876,24 +895,21 @@ export const Maker = () => {
                 background={photoColor}
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a canvas has no tag of its own for this; role="img" gives the drawing a name
                 role="img"
-                aria-label="Record mock-up: your cover with the record peeking out"
+                aria-label={t.recordPreview}
               />
             </div>
-            <p className="hint center">
-              The backdrop is your photo&apos;s main colour, and the
-              record&apos;s label shows the picture.
-            </p>
+            <p className="hint center">{t.recordHint}</p>
           </Window>
         </section>
 
         <form
-          aria-label="Settings"
+          aria-label={t.settings}
           className="settings"
           onSubmit={(e) => e.preventDefault()}
         >
           <div className="stack">
             <fieldset className="panel">
-              <legend>photo</legend>
+              <legend>{t.legends.photo}</legend>
               {photo ? (
                 <div className="photo-info">
                   <CoverCanvas
@@ -908,21 +924,14 @@ export const Maker = () => {
                   <div className="photo-meta">
                     <div className="photo-name">{photo.name}</div>
                     <div className="muted small">
-                      {photo.width} × {photo.height}, cropped to square
+                      {t.cropped(photo.width, photo.height)}
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="muted">
-                  No photo yet. JPEG, PNG and WebP all work.
-                </p>
+                <p className="muted">{t.noPhoto}</p>
               )}
-              {smallPhoto && (
-                <p className="hint">
-                  This photo is under 3000 px, so the export will be scaled up
-                  and may look soft.
-                </p>
-              )}
+              {smallPhoto && <p className="hint">{t.smallPhoto}</p>}
               <input
                 ref={fileInput}
                 type="file"
@@ -939,11 +948,12 @@ export const Maker = () => {
                 className="pill wide"
                 onClick={() => fileInput.current?.click()}
               >
-                {photo ? "replace photo" : "choose photo"}
+                {photo ? t.replacePhoto : t.choosePhoto}
               </button>
               <label htmlFor="zoom" className="field">
                 <span className="field-row">
-                  Zoom<span className="muted">{state.zoom}%</span>
+                  {t.zoom}
+                  <span className="muted">{state.zoom}%</span>
                 </span>
                 <input
                   id="zoom"
@@ -956,11 +966,11 @@ export const Maker = () => {
                 />
               </label>
               <div className="field">
-                <span>Filter</span>
+                <span>{t.filter}</span>
                 <div
                   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
                   role="group"
-                  aria-label="Photo filter"
+                  aria-label={t.photoFilter}
                   className="filter-grid"
                 >
                   {FILTERS.map((f) => (
@@ -981,14 +991,14 @@ export const Maker = () => {
                         style={{ filter: cssFilter(f.id) }}
                         aria-hidden="true"
                       />
-                      {f.name}
+                      {t.filters[f.id]}
                     </button>
                   ))}
                 </div>
               </div>
               <label htmlFor="filter-strength" className="field">
                 <span className="field-row">
-                  Filter strength
+                  {t.filterStrength}
                   <span className="muted">{state.filterStrength}%</span>
                 </span>
                 <input
@@ -1006,14 +1016,14 @@ export const Maker = () => {
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>export</legend>
+              <legend>{t.legends.export}</legend>
               <button
                 type="button"
                 className="export"
                 disabled={busy !== null}
                 onClick={() => doExport("cover")}
               >
-                {exportLabel(busy, "cover", "Cover")}
+                {exportLabel(busy, "cover", t)}
                 <span>PNG · 3000 × 3000</span>
               </button>
               <button
@@ -1022,7 +1032,7 @@ export const Maker = () => {
                 disabled={busy !== null}
                 onClick={() => doExport("player")}
               >
-                {exportLabel(busy, "player", "Player")}
+                {exportLabel(busy, "player", t)}
                 <span>PNG · 1080 × 1440</span>
               </button>
               <button
@@ -1031,20 +1041,18 @@ export const Maker = () => {
                 disabled={busy !== null}
                 onClick={() => doExport("record")}
               >
-                {exportLabel(busy, "record", "Record")}
+                {exportLabel(busy, "record", t)}
                 <span>JPEG · 3000 × 2000</span>
               </button>
-              <p className="hint">
-                Streaming stores ask for at least 3000 × 3000.
-              </p>
+              <p className="hint">{t.streaming}</p>
             </fieldset>
           </div>
 
           <div className="stack">
             <fieldset className="panel">
-              <legend>cover text</legend>
+              <legend>{t.legends.coverText}</legend>
               <label htmlFor="show-text" className="switch-row">
-                Show text on the cover
+                {t.showText}
                 <input
                   id="show-text"
                   className="switch"
@@ -1056,7 +1064,7 @@ export const Maker = () => {
                 />
               </label>
               <label htmlFor="main-title" className="field">
-                Main title
+                {t.mainTitle}
                 <input
                   id="main-title"
                   className="text"
@@ -1066,7 +1074,7 @@ export const Maker = () => {
                 />
               </label>
               <label htmlFor="subtitle" className="field">
-                Subtitle
+                {t.subtitle}
                 <input
                   id="subtitle"
                   className="text"
@@ -1076,46 +1084,51 @@ export const Maker = () => {
                 />
               </label>
               <div className="field">
-                <span>Alignment</span>
+                <span>{t.alignment}</span>
                 <Segmented
-                  label="Text alignment"
+                  label={t.alignLabel}
                   options={TEXT_ALIGNS}
                   value={state.textAlign}
                   disabled={!state.showText}
-                  name={(align) => `Align ${align}`}
+                  name={(align) => t.alignName(t.aligns[align])}
+                  text={(align) => t.aligns[align]}
                   onChange={(align) => set("textAlign", align)}
                 />
               </div>
               <div className="field">
-                <span>Position</span>
+                <span>{t.position}</span>
                 <Segmented
-                  label="Vertical position"
+                  label={t.vertical}
                   options={ROWS}
                   value={row}
                   disabled={!state.showText}
+                  text={(r) => t.positions[r]}
                   onChange={(r) => set("textPosition", `${r}-${column}`)}
                 />
                 <Segmented
-                  label="Horizontal position"
+                  label={t.horizontal}
                   options={COLUMNS}
                   value={column}
                   disabled={!state.showText}
+                  text={(c) => t.positions[c]}
                   onChange={(c) => set("textPosition", `${row}-${c}`)}
                 />
               </div>
               {state.showText && placedText(state) !== state.textPosition && (
                 <p className="hint">
-                  The label has the {spotName(state.labelCorner)} corner, so the
-                  text sits in the {spotName(placedText(state))}.
+                  {t.labelHint(
+                    t.corners[state.labelCorner],
+                    spotName(placedText(state), t)
+                  )}
                 </p>
               )}
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>player</legend>
+              <legend>{t.legends.player}</legend>
               <HueSlider
                 id="player-hue"
-                label="Player"
+                label={t.player}
                 hue={state.playerHue}
                 color={playerColor(state.playerHue)}
                 track={hueTrack(62, 86)}
@@ -1126,38 +1139,35 @@ export const Maker = () => {
                   type="button"
                   className="pill small"
                   aria-pressed={huesLocked}
-                  title="Move both sliders together"
+                  title={t.moveTogether}
                   onClick={() => setHuesLocked((l) => !l)}
                 >
                   <LockIcon open={!huesLocked} />
-                  {huesLocked ? "locked" : "unlocked"}
+                  {huesLocked ? t.locked : t.unlocked}
                 </button>
               </div>
               <HueSlider
                 id="button-hue"
-                label="Buttons and text"
+                label={t.buttonsAndText}
                 hue={state.buttonHue}
                 color={buttonColor(state.buttonHue)}
                 track={hueTrack(48, 25)}
                 onChange={(h) => setHue("buttonHue", h)}
               />
               <p className="hint">
-                {huesLocked
-                  ? "Locked, both sliders move together and keep the same contrast."
-                  : "Unlocked, each slider moves on its own."}{" "}
-                The player&apos;s text always uses Lato.
+                {huesLocked ? t.huesLocked : t.huesUnlocked} {t.lato}
               </p>
             </fieldset>
           </div>
 
           <div className="stack">
             <fieldset className="panel">
-              <legend>fonts</legend>
+              <legend>{t.legends.fonts}</legend>
               <div className="field">
-                <label htmlFor="title-font">Title font</label>
+                <label htmlFor="title-font">{t.titleFont}</label>
                 <FontPicker
                   id="title-font"
-                  label="Title font"
+                  label={t.titleFont}
                   fonts={TITLE_FONTS}
                   value={state.titleFont}
                   style={state.titleStyle}
@@ -1167,7 +1177,8 @@ export const Maker = () => {
                 />
                 <div className="style-row">
                   <StyleButtons
-                    label="Title"
+                    t={t}
+                    label={t.title}
                     value={state.titleStyle}
                     onChange={(v) =>
                       setState((s) => ({ ...s, comboId: null, titleStyle: v }))
@@ -1175,17 +1186,17 @@ export const Maker = () => {
                   />
                   <ColorInput
                     id="title-color"
-                    label="Title colour"
+                    label={t.titleColour}
                     value={state.titleColor}
                     onChange={(v) => set("titleColor", v)}
                   />
                 </div>
               </div>
               <div className="field">
-                <label htmlFor="subtitle-font">Subtitle font</label>
+                <label htmlFor="subtitle-font">{t.subtitleFont}</label>
                 <FontPicker
                   id="subtitle-font"
-                  label="Subtitle font"
+                  label={t.subtitleFont}
                   fonts={SUBTITLE_FONTS}
                   value={state.subtitleFont}
                   style={state.subtitleStyle}
@@ -1195,28 +1206,26 @@ export const Maker = () => {
                 />
                 <div className="style-row">
                   <StyleButtons
-                    label="Subtitle"
+                    t={t}
+                    label={t.subtitle}
                     value={state.subtitleStyle}
                     onChange={(v) => set("subtitleStyle", v)}
                   />
                   <ColorInput
                     id="subtitle-color"
-                    label="Subtitle colour"
+                    label={t.subtitleColour}
                     value={state.subtitleColor}
                     onChange={(v) => set("subtitleColor", v)}
                   />
                 </div>
               </div>
-              <p className="hint">
-                Title and subtitle fonts are separate sets, so the two never
-                clash.
-              </p>
+              <p className="hint">{t.fontsHint}</p>
             </fieldset>
 
             <fieldset className="panel grow">
-              <legend>label</legend>
+              <legend>{t.legends.label}</legend>
               <label htmlFor="pa-show" className="switch-row">
-                Show the label
+                {t.showLabel}
                 <input
                   id="pa-show"
                   className="switch"
@@ -1229,13 +1238,13 @@ export const Maker = () => {
               </label>
               <div className="field">
                 <span className="field-row">
-                  Label size
-                  <span className="muted">{state.labelSize}% of the width</span>
+                  {t.labelSize}
+                  <span className="muted">{t.labelWidth(state.labelSize)}</span>
                 </span>
                 <div
                   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
                   role="group"
-                  aria-label="Label size"
+                  aria-label={t.labelSize}
                   className="size-grid"
                 >
                   {LABEL_SIZES.map(({ name, percent }) => (
@@ -1253,14 +1262,14 @@ export const Maker = () => {
                     </button>
                   ))}
                 </div>
-                <span className="hint">Most releases use S (10%).</span>
+                <span className="hint">{t.mostReleases}</span>
               </div>
               <div className="field">
-                <span>Position</span>
+                <span>{t.position}</span>
                 <div
                   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <fieldset> would bring its own border, padding and legend layout; this row of buttons is styled as a plain group
                   role="group"
-                  aria-label="Label corner"
+                  aria-label={t.labelCorner}
                   className="corner-grid"
                 >
                   {CORNERS.map((c) => (
@@ -1272,7 +1281,7 @@ export const Maker = () => {
                       disabled={!state.showLabel}
                       onClick={() => set("labelCorner", c)}
                     >
-                      {c.replace("-", " ")}
+                      {t.corners[c]}
                     </button>
                   ))}
                 </div>
@@ -1281,19 +1290,15 @@ export const Maker = () => {
           </div>
 
           <fieldset className="panel combos-panel">
-            <legend>combos</legend>
+            <legend>{t.legends.combos}</legend>
             <p className="lead">
-              {photo
-                ? "Picked from your photo."
-                : "Add a photo and these pick up its colours."}{" "}
-              Each of the {COMBOS.length} sets the cover fonts and player
-              colours.
+              {t.combosLead(photo !== null, COMBOS.length)}
             </p>
             <div className="combo-scroll">
               <div
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a <ul> would bring list styling to this scrolling row of cards
                 role="list"
-                aria-label="Suggested combos"
+                aria-label={t.suggested}
                 className="combo-list"
               >
                 {suggestions.map((sug) => {
@@ -1328,7 +1333,7 @@ export const Maker = () => {
                         <span className="combo-text">
                           <span className="combo-name">{sug.combo.name}</span>
                           <span className="combo-fonts">
-                            with {sug.combo.subtitleFont}
+                            {t.with(sug.combo.subtitleFont)}
                           </span>
                         </span>
                       </button>
@@ -1341,7 +1346,7 @@ export const Maker = () => {
         </form>
       </main>
       <footer className="footer">
-        <Logo size={20} /> Album Cover Maker by Irma HS
+        <Logo size={20} /> Album Cover Maker {t.by}
       </footer>
     </div>
   );

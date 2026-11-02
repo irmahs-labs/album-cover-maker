@@ -32,6 +32,10 @@ npm run test:e2e  # Playwright, when a change touches what the browser shows
 
 The PostToolUse hook in `.claude/hooks/ultracite.sh` runs Ultracite and the typecheck on every file you edit.
 
+## Languages
+
+The app reads in English or French. The choice is `src/lib/language.ts`: kept in localStorage and in a `lang` cookie on `irmahs.dev` that every irmahs.dev app reads and writes, so one pick carries across the apps; the header's EN/FR pill (`src/components/language-toggle.tsx`) switches it. Every string a visitor sees has both versions, in a `COPY = { en, fr }` object beside the component that shows it (`useCopy(COPY)`), the maker's in `src/components/maker-copy.ts`. Window and file names (`cover.png`, `hello.txt`) stay as they are in both.
+
 ## Design
 
 The app is the one Cute Matcha's _Apps_ section was drawn from, and it works in both of the system's themes: Light Matcha, and Dark Matcha (a mid-tone matcha page, cards a step lighter, the header, buttons and fields a darker well, near-black outlines and shadows). Colours are its role tokens, named by job (`ground`, `panel`, `header`, `raised`, `text`, `text-muted`, `accent`, `on-accent`, `strong`, `selected`, …), at the top of `src/styles.css`: Light Matcha on `:root`, Dark Matcha on `:root[data-theme="dark"]`. Pick a token by what the thing is, never a hex: the primary pill is `accent`, a chosen option, combo, font or switch is `selected`, legends, title bars and the export button are `strong`. Every surface sets its own text: `text` on `panel` and `raised`, `on-accent` on `accent` (the lime windows), `on-strong` on `strong`, `on-selected` on `selected`. The inline script in `index.html` sets `data-theme` before the first paint, from the visitor's saved choice or else the device's setting; `src/lib/theme.ts` keeps it, and the header's sun/moon pill saves a choice. The cover, the record and the player mock-up are artwork and keep their own colours.
