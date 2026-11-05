@@ -36,7 +36,7 @@ export const useFontsReady = (state: CoverState): number => {
       }
     };
 
-    load();
+    void load();
 
     return () => {
       live = false;

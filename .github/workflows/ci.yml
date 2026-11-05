@@ -25,9 +25,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npm exec --no -- playwright install --with-deps chromium
       # Builds the app and serves it itself (playwright.config.ts)
       - run: npm run test:e2e
       - name: Upload the Playwright report when they fail

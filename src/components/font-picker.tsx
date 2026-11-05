@@ -179,6 +179,8 @@ export const FontPicker = <F extends string>({
               id={optionId(i)}
               // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <option> only works inside a native <select>, which can't show each font
               role="option"
+              // Focusable by script only: Tab and the arrows stay on the listbox
+              tabIndex={-1}
               aria-selected={font === value}
               className={i === active ? "active" : undefined}
               style={fontStyle(font)}

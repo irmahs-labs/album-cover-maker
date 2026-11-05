@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { linkTo, navigate } from "./router";
+import { linkTo, navigate, withoutTrailingSlashes } from "./router";
 
 const click = (init: Partial<MouseEvent> = {}) => {
   const event = {
@@ -62,4 +62,22 @@ describe("router", () => {
       expect(window.location.pathname).toBe("/");
     }
   );
+});
+
+describe("withoutTrailingSlashes", () => {
+  it("drops every slash at the end", () => {
+    expect(withoutTrailingSlashes("/make/")).toBe("/make");
+    expect(withoutTrailingSlashes("/make///")).toBe("/make");
+    expect(withoutTrailingSlashes("/")).toBe("");
+  });
+
+  it("keeps the slashes inside", () => {
+    expect(withoutTrailingSlashes("/a//b")).toBe("/a//b");
+  });
+
+  it("answers at once for a long run of slashes", () => {
+    expect(withoutTrailingSlashes(`${"/".repeat(50_000)}x`)).toBe(
+      `${"/".repeat(50_000)}x`
+    );
+  });
 });

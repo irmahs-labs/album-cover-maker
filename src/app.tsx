@@ -3,11 +3,11 @@ import { useEffect } from "react";
 import { Landing } from "./components/landing";
 import { Maker } from "./components/maker";
 import { useLanguage } from "./lib/language";
-import { usePath } from "./router";
+import { usePath, withoutTrailingSlashes } from "./router";
 
 export const App = () => {
   const path = usePath();
-  const onMaker = path.replace(/\/+$/u, "") === "/make";
+  const onMaker = withoutTrailingSlashes(path) === "/make";
   const french = useLanguage() === "fr";
 
   useEffect(() => {
