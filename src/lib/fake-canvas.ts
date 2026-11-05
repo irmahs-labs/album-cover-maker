@@ -10,8 +10,11 @@ export interface Call {
   fillStyle: unknown;
 }
 
-export const fontPx = (font: string) =>
-  Number(/(?<px>\d+(?:\.\d+)?)px/u.exec(font)?.groups?.px ?? 10);
+export const fontPx = (font: string) => {
+  const size = font.split(" ").find((word) => /^\d+(?:\.\d+)?px$/u.test(word));
+
+  return size ? Number(size.slice(0, -2)) : 10;
+};
 
 const noop = () => {
   // A gradient stop changes nothing the tests read.

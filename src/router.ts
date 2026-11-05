@@ -9,6 +9,17 @@ const subscribe = (onChange: () => void) => {
 export const usePath = (): string =>
   useSyncExternalStore(subscribe, () => window.location.pathname);
 
+/** "/places//" → "/places": a page is the same with or without trailing slashes. */
+export const withoutTrailingSlashes = (path: string): string => {
+  let end = path.length;
+
+  while (path[end - 1] === "/") {
+    end -= 1;
+  }
+
+  return path.slice(0, end);
+};
+
 export const navigate = (to: string) => {
   if (to === window.location.pathname) {
     return;

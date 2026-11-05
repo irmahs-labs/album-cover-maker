@@ -125,4 +125,5 @@ export const slug = (text: string): string =>
     .normalize("NFKD")
     .replaceAll(/[̀-ͯ]/gu, "")
     .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/^-+|-+$/gu, "") || "cover";
+    // The line above leaves no two dashes together, so at most one at each end.
+    .replaceAll(/^-|-$/gu, "") || "cover";

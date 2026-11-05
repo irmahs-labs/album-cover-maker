@@ -51,6 +51,7 @@ describe("slug", () => {
     expect(slug("Sleepless Nights Alexa")).toBe("sleepless-nights-alexa");
     expect(slug("Café Été!")).toBe("cafe-ete");
     expect(slug("???")).toBe("cover");
+    expect(slug("  ¡Hola, Mundo!  ")).toBe("hola-mundo");
   });
 });
 
