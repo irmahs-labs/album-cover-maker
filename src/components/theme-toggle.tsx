@@ -34,7 +34,7 @@ export const ThemeToggle = () => {
         aria-hidden="true"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       >

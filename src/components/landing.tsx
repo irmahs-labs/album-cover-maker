@@ -46,6 +46,7 @@ const COPY = {
     how: "how it works",
     lead: "Drop in a photo, add your title and export a 3000 × 3000 PNG. No sign-up, no account, nothing to install.",
     make: "make a cover",
+    more: "more apps at",
     start: "start making",
     steps: [
       {
@@ -98,6 +99,7 @@ const COPY = {
     how: "comment ça marche",
     lead: "Déposez une photo, ajoutez votre titre et exportez un PNG de 3000 × 3000. Sans inscription, sans compte, rien à installer.",
     make: "créer une pochette",
+    more: "plus d’apps sur",
     start: "commencer",
     steps: [
       {
@@ -135,7 +137,7 @@ export const Landing = () => {
           <LanguageToggle />
           <ThemeToggle />
           <AccountButton />
-          <a href="/make" onClick={linkTo("/make")} className="pill primary">
+          <a href="/make" onClick={linkTo("/make")} className="pill">
             {t.make}
           </a>
         </div>
@@ -229,7 +231,7 @@ export const Landing = () => {
       </main>
 
       <footer className="footer">
-        <Logo size={20} /> Album Cover Maker {t.by}
+        {t.more} <a href="https://irmahs.dev">irmahs.dev</a>
       </footer>
     </div>
   );

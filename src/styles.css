@@ -7,11 +7,15 @@
   --raised: #fffdf0;
   --raised-hover: #e8e1bd;
   --text: #2f3b34;
-  --text-muted: #3f6b30;
+  --text-muted: #335a26;
   --outline: #2f3b34;
   --accent: #d4dd9c;
   --accent-soft: #afc584;
   --on-accent: #2f3b34;
+  /* The one accent: a pastel butter yellow, for the call to action only */
+  --pop: #ffd968;
+  --pop-hover: #f5c94a;
+  --on-pop: #2f3b34;
   --strong: #3b4a42;
   --on-strong: #fff3cf;
   --selected: #afc584;
@@ -24,6 +28,13 @@
   /* Hard shadows are the same near-black in both themes */
   --shadow-hard: 3px 3px 0 #0f1411;
   --shadow-soft: 2px 2px 0 #0f1411;
+  /* Concentric corners: a 20px panel padded 12px holds 8px fields, and what
+     sits deep inside a 9px window is all but square */
+  --radius-xs: 2px;
+  --radius-field: 8px;
+  --radius-lg: 9px;
+  --radius-panel: 20px;
+  --space-group: 24px;
   color-scheme: light;
 
   /* Fixed: they belong to drawings and marks, never to text. */
@@ -44,24 +55,27 @@
 :root[data-theme="dark"] {
   /* Dark Matcha: a mid-tone matcha page, cards a step lighter, and the header,
      buttons and fields a darker well. Outlines and shadows stay near-black. */
-  --ground: #46574b;
-  --panel: #52645a;
+  --ground: #405045;
+  --panel: #4b5c51;
   --header: #2f3d34;
   --raised: #2f3d34;
   --raised-hover: #3a4a3f;
   --text: #f3f1c8;
-  --text-muted: #d4e396;
+  --text-muted: #dbe8a6;
   --outline: #0f1411;
   --accent: #c9d68f;
   --accent-soft: #9eb27a;
   --on-accent: #0f1411;
+  --pop: #ffe08a;
+  --pop-hover: #ffd666;
+  --on-pop: #0f1411;
   --strong: #1c2420;
   --on-strong: #f3f1c8;
   --selected: #c9d68f;
   --on-selected: #0f1411;
   --grid: #2f3b34;
   --pattern-dot: #b8d97000;
-  --pattern-line: #4d5f52;
+  --pattern-line: #4a5b4f;
   --focus: #c2d8f5;
   --danger: #f6a49d;
   color-scheme: dark;
@@ -284,16 +298,29 @@ input:disabled {
   background: var(--panel);
   color: var(--text);
 }
+/* The one call to action on a screen: the only yellow thing on it, 48px
+   tall, on the hard shadow it sinks into when pressed */
 .pill.primary {
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: 3px 3px 0 #0f1411;
+  min-height: 48px;
+  background: var(--pop);
+  color: var(--on-pop);
+  box-shadow: var(--shadow-hard);
+  transition:
+    background-color 0.15s,
+    transform 0.08s,
+    box-shadow 0.08s;
 }
 .pill.primary:hover {
-  background: var(--accent);
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 #0f1411;
-  color: var(--on-accent);
+  background: var(--pop-hover);
+  color: var(--on-pop);
+}
+.pill.primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #0f1411;
+}
+/* Align by eye: the icon side takes 2px less */
+.pill:has(> svg:first-child) {
+  padding-left: 14px;
 }
 .pill.big {
   min-height: 48px;
@@ -345,7 +372,7 @@ input:disabled {
 .toggle {
   min-height: 44px;
   border: 2px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-field);
   background: var(--raised);
   color: var(--text);
   font-size: 14px;
@@ -361,9 +388,9 @@ input:disabled {
   margin: 0;
   min-width: 0;
   border: 2px solid var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-panel);
   background: var(--panel);
-  padding: 14px 16px 16px;
+  padding: 16px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -373,7 +400,7 @@ input:disabled {
   background: var(--strong);
   color: var(--on-strong);
   border-radius: 999px;
-  padding: 2px 12px;
+  padding: 3px 12px 1px;
   font-size: 12px;
   font-family: var(--display);
   font-weight: 600;
@@ -431,7 +458,7 @@ input:disabled {
   font-size: 15px;
   padding: 9px 11px;
   border: 1.5px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-field);
   background: var(--raised);
   color: var(--text);
   min-width: 0;
@@ -442,7 +469,7 @@ input:disabled {
   min-height: 44px;
   padding: 8px 36px 8px 12px;
   border: 1.5px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-field);
   background-color: var(--raised);
   background-image:
     linear-gradient(45deg, transparent 50%, var(--text) 50%),
@@ -479,9 +506,9 @@ input:disabled {
   overflow-y: auto;
   padding: 4px;
   border: 2px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-field);
   background: var(--raised);
-  box-shadow: 3px 3px 0 #0f1411;
+  box-shadow: var(--shadow-hard);
   outline: none;
   color: var(--text);
 }
@@ -703,12 +730,12 @@ input.switch:checked::after {
   align-items: center;
   padding: 14px 22px;
   border: 2px dashed var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-field);
   background: var(--panel);
   color: var(--text);
   font-size: 16px;
   white-space: nowrap;
-  box-shadow: 3px 3px 0 #0f1411;
+  box-shadow: var(--shadow-hard);
 }
 .drop-hint span {
   font-size: 13px;
@@ -789,7 +816,7 @@ input.switch:checked::after {
 .segmented {
   display: flex;
   border: 2px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-field);
   overflow: hidden;
 }
 .segmented button {
@@ -895,7 +922,7 @@ input.switch:checked::after {
   text-align: left;
   padding: 8px;
   border: 2px solid var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-field);
   background: var(--raised);
   color: var(--text);
   min-height: 64px;
@@ -908,7 +935,7 @@ input.switch:checked::after {
   flex: none;
   width: 48px;
   height: 48px;
-  border-radius: 7px;
+  border-radius: var(--radius-xs);
   border: 1.5px solid var(--outline);
   display: grid;
   place-items: center;
@@ -1007,6 +1034,7 @@ input.switch:checked::after {
 .export span {
   font-size: 13px;
   opacity: 0.85;
+  font-variant-numeric: tabular-nums;
 }
 
 .error {
@@ -1018,20 +1046,17 @@ input.switch:checked::after {
   gap: 10px;
   padding: 10px 14px;
   border: 2px solid var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-field);
   background: #f6d8d2;
   font-weight: 700;
 }
 
-/* The page's last line, as every irmahs.dev app ends: the icon, then who
-   made it, on a pill centred at the bottom */
+/* Cute Matcha's Footer, as every irmahs.dev app ends: where to find more
+   apps, on a pill centred at the bottom */
 .footer {
   width: fit-content;
-  margin: 12px auto 32px;
-  padding: 6px 14px 6px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  margin: 8px auto 32px;
+  padding: 6px 14px;
   border: 2px solid var(--outline);
   border-radius: 999px;
   background-color: var(--panel);
@@ -1055,8 +1080,8 @@ input.switch:checked::after {
   min-width: 0;
   background: var(--accent);
   border: 2px solid var(--outline);
-  border-radius: 14px;
-  box-shadow: 5px 5px 0 #0f1411;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hard);
   overflow: hidden;
   color: var(--on-accent);
 }
@@ -1123,8 +1148,8 @@ input.switch:checked::after {
   display: inline-block;
   background: var(--accent-soft);
   border: 2px solid var(--outline);
-  border-radius: 11px;
-  box-shadow: 3px 3px 0 #0f1411;
+  border-radius: var(--radius-pill, 999px);
+  box-shadow: var(--shadow-soft);
   padding: 4px 14px;
   font-size: 16px;
   font-weight: 700;
@@ -1193,7 +1218,7 @@ input.switch:checked::after {
 .step {
   background: var(--panel);
   border: 2px solid var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-xs);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -1217,6 +1242,7 @@ input.switch:checked::after {
   font-size: 20px;
   font-family: var(--display);
   font-weight: 600;
+  text-wrap: balance;
 }
 .step p {
   margin: 0;
@@ -1238,7 +1264,7 @@ input.switch:checked::after {
 .get-list li {
   background: var(--panel);
   border: 2px solid var(--outline);
-  border-radius: 9px;
+  border-radius: var(--radius-xs);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -1262,7 +1288,7 @@ input.switch:checked::after {
   margin: 0;
   background: var(--panel);
   border: 2px solid var(--outline);
-  border-radius: 11px;
+  border-radius: var(--radius-xs);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -1328,4 +1354,77 @@ input.switch:checked::after {
    text on accent; text-muted only reads on ground, panel and raised. */
 .hero-copy .muted {
   color: var(--on-accent);
+}
+
+.footer a {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
+.brand-name,
+.hero h1 {
+  text-wrap: balance;
+}
+.hero-lead,
+.step p,
+.faq-list dd {
+  text-wrap: pretty;
+}
+
+/* An export that is saving keeps its size and shows one spinner */
+.export[aria-busy="true"]::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.export[aria-busy="true"] span {
+  margin-left: auto;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The account pill while the session is asked for: a skeleton of its exact
+   size, so nothing moves when the answer comes */
+.account--loading {
+  pointer-events: none;
+}
+.account--loading .account-icon {
+  background: var(--raised-hover);
+}
+.account-bar {
+  width: 56px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--raised-hover);
+  animation: account-pulse 1.2s ease-in-out infinite;
+}
+@keyframes account-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (max-width: 600px) {
+  .account-bar {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-bar,
+  .export[aria-busy="true"]::before {
+    animation: none;
+  }
+  .pill.primary:active {
+    transform: none;
+  }
 }
