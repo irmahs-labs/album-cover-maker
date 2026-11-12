@@ -262,12 +262,13 @@ const DiceIcon = () => (
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <rect x="3" y="3" width="18" height="18" rx="4" />
-    <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" />
-    <circle cx="12" cy="12" r="1.4" fill="currentColor" />
-    <circle cx="15.5" cy="15.5" r="1.4" fill="currentColor" />
+    <circle cx="8.5" cy="8.5" r="1" fill="currentColor" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+    <circle cx="15.5" cy="15.5" r="1" fill="currentColor" />
   </svg>
 );
 
@@ -279,7 +280,7 @@ const UndoIcon = ({ redo = false }: { redo?: boolean }) => (
     aria-hidden="true"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2.4"
+    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
     style={redo ? { transform: "scaleX(-1)" } : undefined}
@@ -309,7 +310,7 @@ const LockIcon = ({ open }: { open: boolean }) => (
     aria-hidden="true"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2.2"
+    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
@@ -326,7 +327,7 @@ const RestartIcon = () => (
     aria-hidden="true"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2.4"
+    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
@@ -1020,6 +1021,7 @@ export const Maker = () => {
               <button
                 type="button"
                 className="export"
+                aria-busy={busy === "cover"}
                 disabled={busy !== null}
                 onClick={() => doExport("cover")}
               >
@@ -1029,6 +1031,7 @@ export const Maker = () => {
               <button
                 type="button"
                 className="export"
+                aria-busy={busy === "player"}
                 disabled={busy !== null}
                 onClick={() => doExport("player")}
               >
@@ -1038,6 +1041,7 @@ export const Maker = () => {
               <button
                 type="button"
                 className="export"
+                aria-busy={busy === "record"}
                 disabled={busy !== null}
                 onClick={() => doExport("record")}
               >
@@ -1346,7 +1350,7 @@ export const Maker = () => {
         </form>
       </main>
       <footer className="footer">
-        <Logo size={20} /> Album Cover Maker {t.by}
+        {t.more} <a href="https://irmahs.dev">irmahs.dev</a>
       </footer>
     </div>
   );
